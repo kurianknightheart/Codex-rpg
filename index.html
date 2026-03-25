@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Ashen Marches — Mobile Isometric RPG</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="hud">
+      <div class="hud__name">Ashen Marches</div>
+      <div class="hud__stats" id="coreStats"></div>
+      <div class="hud__resource" id="resourceBars"></div>
+    </header>
+
+    <section class="stage">
+      <div class="world" id="world" aria-label="isometric world map"></div>
+      <aside class="panel" id="panel">
+        <h2 id="panelTitle">Road Journal</h2>
+        <p id="panelText">Tap highlighted tiles to travel. Movement trains Endurance and Dexterity over time.</p>
+        <div class="actions" id="actions"></div>
+      </aside>
+    </section>
+
+    <footer class="log" id="log" aria-live="polite"></footer>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
