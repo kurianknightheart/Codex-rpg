@@ -159,6 +159,7 @@ function itemIconSvg(item) {
 }
 
 function generateItems() {
+  state.itemPool = [];
   const bases = {
     weapon: ['Knight Sword', 'Short Spear', 'Falchion', 'Mace', 'War Pick'],
     helmet: ['Iron Coif', 'Nasal Helm', 'Visored Helm', 'Padded Coif', 'Chapel Helm'],
@@ -257,7 +258,15 @@ function equipItem(item) {
 
 function renderInventory() {
   inventoryEl.innerHTML = '';
-  state.player.inventory.slice(0, 24).forEach((item) => {
+  const visibleItems = state.player.inventory.slice(0, 24);
+  if (!visibleItems.length) {
+    const empty = document.createElement('div');
+    empty.className = 'slot-row';
+    empty.innerHTML = '<strong>No items generated</strong><small>Debug: item pool did not initialize.</small>';
+    inventoryEl.appendChild(empty);
+    return;
+  }
+  visibleItems.forEach((item) => {
     const card = document.createElement('div');
     card.className = 'item-card';
     card.innerHTML = `
@@ -303,6 +312,7 @@ function monsterSvg(hue) {
 }
 
 function spawnRoamingMonsters(count) {
+  if (!state.bestiary.length) return;
   state.monsters = [];
   for (let i = 0; i < count; i += 1) {
     const type = state.bestiary[roll(0, state.bestiary.length - 1)];
@@ -576,6 +586,7 @@ function init() {
   generateItems();
   generateBestiary();
   renderWorld();
+  worldEl.appendChild(playerEl);
   renderPlayer();
   renderInventory();
   initStarterEquipment();
@@ -584,6 +595,7 @@ function init() {
   updateHud();
   bindJoystick();
   addLog('A young knight enters the Ashen Marches.');
+  addLog(`Debug: ${state.player.inventory.length} inventory items loaded, ${state.bestiary.length} monster types ready.`);
   panelTextEl.textContent = 'Tap any stat to read what it changes. Equip items to alter visuals and combat math.';
   gameLoop();
 }
