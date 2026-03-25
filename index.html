@@ -3,49 +3,49 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Ashen Marches — Mobile Isometric RPG</title>
+  <title>Ashen Marches — Knight of the Mire</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="app">
     <header class="hud">
-      <div class="hud__title">
+      <div class="title-block">
         <h1>Ashen Marches</h1>
-        <p>Dark low-medieval mobile RPG</p>
+        <p>Young Knight Expedition</p>
       </div>
       <div class="hud__stats" id="coreStats"></div>
-      <div class="hud__resource" id="resourceBars"></div>
+      <div class="hud__resources" id="resourceBars"></div>
     </header>
 
-    <section class="game-wrap">
-      <div class="world" id="world" aria-label="isometric world">
-        <div class="character" id="playerCharacter" aria-label="player character">
-          <div class="layer body"></div>
-          <div class="layer armor"></div>
-          <div class="layer leggings"></div>
-          <div class="layer boots"></div>
-          <div class="layer gloves"></div>
-          <div class="layer helmet"></div>
-          <div class="layer weapon"></div>
-          <div class="layer offhand"></div>
-          <div class="layer ornament"></div>
-        </div>
+    <section class="main-grid">
+      <div class="world" id="world">
+        <div class="player" id="player" aria-label="young knight"></div>
       </div>
 
       <aside class="panel">
-        <h2 id="panelTitle">Road Journal</h2>
-        <p id="panelText">Move with the circular joystick. Combat remains turn based.</p>
-        <div class="actions" id="actions"></div>
-        <div class="inventory" id="inventory"></div>
+        <h2 id="panelTitle">Field Notes</h2>
+        <p id="panelText">Tap stat pills to learn what each attribute changes.</p>
+
+        <section class="equipment">
+          <h3>Equipped</h3>
+          <div id="equipmentSlots" class="equipment-slots"></div>
+        </section>
+
+        <section class="inventory-section">
+          <h3>Inventory</h3>
+          <div id="inventory" class="inventory"></div>
+        </section>
+
+        <section class="actions" id="actions"></section>
       </aside>
     </section>
 
     <section class="controls">
-      <div class="joystick" id="joystick" aria-label="movement joystick">
-        <div class="joystick__base"></div>
-        <div class="joystick__knob" id="joystickKnob"></div>
+      <div class="joystick" id="joystick">
+        <div class="joystick-base"></div>
+        <div class="joystick-knob" id="joystickKnob"></div>
       </div>
-      <div class="encounter-panel" id="encounterPanel"></div>
+      <div class="encounter" id="encounterPanel">No immediate threats.</div>
     </section>
 
     <footer class="log" id="log" aria-live="polite"></footer>
