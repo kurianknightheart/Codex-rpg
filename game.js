@@ -412,7 +412,7 @@ function attackAction(type) {
 
   state.player.stamina = clamp(state.player.stamina - (type === 'driving' ? 14 : 10), 0, 100);
   state.player.focus = clamp(state.player.focus - 4, 0, 100);
-  state.player.className = 'player attacking';
+  playerEl.className = 'player attacking';
   setTimeout(() => playerEl.className = 'player', 220);
   awardPractice('strength', 1);
   awardPractice('dexterity', 1);
@@ -573,7 +573,6 @@ function initStarterEquipment() {
 }
 
 function init() {
-  renderWorld();
   generateItems();
   generateBestiary();
   renderWorld();
