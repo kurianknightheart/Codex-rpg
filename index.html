@@ -9,18 +9,43 @@
 <body>
   <main class="app">
     <header class="hud">
-      <div class="hud__name">Ashen Marches</div>
+      <div class="hud__title">
+        <h1>Ashen Marches</h1>
+        <p>Dark low-medieval mobile RPG</p>
+      </div>
       <div class="hud__stats" id="coreStats"></div>
       <div class="hud__resource" id="resourceBars"></div>
     </header>
 
-    <section class="stage">
-      <div class="world" id="world" aria-label="isometric world map"></div>
-      <aside class="panel" id="panel">
+    <section class="game-wrap">
+      <div class="world" id="world" aria-label="isometric world">
+        <div class="character" id="playerCharacter" aria-label="player character">
+          <div class="layer body"></div>
+          <div class="layer armor"></div>
+          <div class="layer leggings"></div>
+          <div class="layer boots"></div>
+          <div class="layer gloves"></div>
+          <div class="layer helmet"></div>
+          <div class="layer weapon"></div>
+          <div class="layer offhand"></div>
+          <div class="layer ornament"></div>
+        </div>
+      </div>
+
+      <aside class="panel">
         <h2 id="panelTitle">Road Journal</h2>
-        <p id="panelText">Tap highlighted tiles to travel. Movement trains Endurance and Dexterity over time.</p>
+        <p id="panelText">Move with the circular joystick. Combat remains turn based.</p>
         <div class="actions" id="actions"></div>
+        <div class="inventory" id="inventory"></div>
       </aside>
+    </section>
+
+    <section class="controls">
+      <div class="joystick" id="joystick" aria-label="movement joystick">
+        <div class="joystick__base"></div>
+        <div class="joystick__knob" id="joystickKnob"></div>
+      </div>
+      <div class="encounter-panel" id="encounterPanel"></div>
     </section>
 
     <footer class="log" id="log" aria-live="polite"></footer>
