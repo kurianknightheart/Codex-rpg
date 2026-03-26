@@ -85,6 +85,23 @@ function iso(x, y) {
   return { x: (x - y) * (s / 2) + el.world.clientWidth / 2 - 38, y: (x + y) * (s / 4) + 24 };
 }
 
+function screenToWorldTile(clientX, clientY) {
+  const rect = el.world.getBoundingClientRect();
+  const lx = clientX - rect.left;
+  const ly = clientY - rect.top;
+  const s = 38;
+  const cx = lx - (el.world.clientWidth / 2 - 38);
+  const cy = ly - 24;
+  const localX = (cx / (s / 2) + cy / (s / 4)) / 2;
+  const localY = (cy / (s / 4) - cx / (s / 2)) / 2;
+  const wx = Math.round(state.player.pos.x + localX - VIEW_RADIUS);
+  const wy = Math.round(state.player.pos.y + localY - VIEW_RADIUS);
+  return {
+    x: clamp(wx, 0, MAP_SIZE - 1),
+    y: clamp(wy, 0, MAP_SIZE - 1),
+  };
+}
+
 function biomeAt(x, y) {
   const n = Math.sin(x * 0.045) + Math.cos(y * 0.038) + Math.sin((x + y) * 0.02) + Math.cos((x - y) * 0.015);
   if (n > 1.7) return 'frost';
@@ -388,11 +405,7 @@ function bindTabs() {
 
 function bindMapTap() {
   el.world.addEventListener('pointerdown', (ev) => {
-    const tile = ev.target.closest('.tile');
-    if (!tile) return;
-    const x = Number(tile.dataset.x);
-    const y = Number(tile.dataset.y);
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+    const { x, y } = screenToWorldTile(ev.clientX, ev.clientY);
     state.destination = { x, y };
     el.encounter.textContent = `Travelling to (${x}, ${y}) through ${biomeAt(x, y)}.`;
   });
