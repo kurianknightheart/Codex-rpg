@@ -49,16 +49,23 @@ const SAVE_KEY = 'ashen_marches_save_v1';
 
 function knightSvg(weaponHue = 24, armorHue = 220, trimHue = 45) {
   return `<svg viewBox='0 0 120 160' xmlns='http://www.w3.org/2000/svg'>
-    <path d='M44 150 L60 80 L76 150 Z' fill='hsl(${trimHue} 55% 34%)'/>
-    <rect x='42' y='60' width='36' height='38' rx='9' fill='hsl(${armorHue} 25% 52%)'/>
-    <rect x='33' y='66' width='10' height='34' rx='4' fill='hsl(${armorHue} 20% 44%)'/>
-    <rect x='77' y='66' width='10' height='34' rx='4' fill='hsl(${armorHue} 20% 44%)'/>
-    <rect x='48' y='98' width='10' height='32' rx='4' fill='hsl(${armorHue} 20% 40%)'/>
-    <rect x='62' y='98' width='10' height='32' rx='4' fill='hsl(${armorHue} 20% 40%)'/>
-    <ellipse cx='60' cy='44' rx='16' ry='18' fill='hsl(30 25% 78%)'/>
-    <path d='M42 45 Q60 20 78 45 L78 52 L42 52 Z' fill='hsl(${armorHue} 25% 58%)'/>
-    <rect x='84' y='48' width='8' height='52' rx='3' transform='rotate(22 88 74)' fill='hsl(${weaponHue} 55% 58%)'/>
-    <rect x='86' y='80' width='22' height='4' rx='2' transform='rotate(22 97 82)' fill='hsl(${weaponHue} 55% 70%)'/>
+    <g stroke='#18131f' stroke-width='2.6' stroke-linejoin='round' stroke-linecap='round'>
+      <path d='M45 150 L60 88 L75 150 Z' fill='hsl(${trimHue} 48% 30%)'/>
+      <ellipse cx='60' cy='43' rx='20' ry='18' fill='hsl(32 22% 76%)'/>
+      <path d='M40 45 Q60 18 80 45 L78 56 L42 56 Z' fill='hsl(${armorHue} 22% 64%)'/>
+      <rect x='38' y='60' width='44' height='44' rx='12' fill='hsl(${armorHue} 24% 54%)'/>
+      <rect x='31' y='68' width='10' height='38' rx='4' fill='hsl(${armorHue} 20% 46%)'/>
+      <rect x='79' y='68' width='10' height='38' rx='4' fill='hsl(${armorHue} 20% 46%)'/>
+      <path d='M51 64 L69 64 L66 84 L54 84 Z' fill='hsl(${trimHue} 65% 44%)'/>
+      <rect x='47' y='102' width='12' height='34' rx='4' fill='hsl(${armorHue} 18% 40%)'/>
+      <rect x='61' y='102' width='12' height='34' rx='4' fill='hsl(${armorHue} 18% 40%)'/>
+      <rect x='45' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 28%)'/>
+      <rect x='59' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 28%)'/>
+      <path d='M86 44 L92 100 L84 101 L78 47 Z' fill='hsl(${weaponHue} 60% 66%)'/>
+      <rect x='74' y='81' width='24' height='6' rx='2' transform='rotate(10 86 84)' fill='hsl(${weaponHue} 45% 34%)'/>
+      <circle cx='54' cy='44' r='2.1' fill='#1d171d'/>
+      <circle cx='66' cy='44' r='2.1' fill='#1d171d'/>
+    </g>
   </svg>`;
 }
 
