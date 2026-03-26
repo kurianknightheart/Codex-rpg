@@ -347,8 +347,18 @@ function equipItem(item) {
 function renderEquipment() {
   el.equipment.innerHTML = '';
   const slotPositions = {
-    helmet: [50, 10], chestArmor: [50, 30], cape: [50, 49], weapon: [85, 42], offhand: [15, 42],
-    gloves: [80, 64], boots: [50, 88], necklace: [50, 20], ring1: [21, 68], ring2: [79, 68], trinket1: [21, 85], trinket2: [79, 85],
+    helmet: [50, 11],
+    necklace: [50, 24],
+    chestArmor: [50, 39],
+    gloves: [26, 40],
+    weapon: [14, 56],
+    offhand: [86, 56],
+    ring1: [24, 71],
+    ring2: [76, 71],
+    boots: [50, 83],
+    cape: [50, 95],
+    trinket1: [18, 90],
+    trinket2: [82, 90],
   };
   SLOT_ORDER.forEach((slot) => {
     const it = state.player.equipment[slot];
