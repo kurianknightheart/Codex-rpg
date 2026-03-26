@@ -102,27 +102,28 @@ function decoSeed(x, y) {
 function renderMapChunk() {
   el.world.querySelectorAll('.tile,.monster,.deco').forEach((n) => n.remove());
   const { x: px, y: py } = state.player.pos;
+  const fragment = document.createDocumentFragment();
   for (let y = py - VIEW_RADIUS; y <= py + VIEW_RADIUS; y += 1) {
     for (let x = px - VIEW_RADIUS; x <= px + VIEW_RADIUS; x += 1) {
       if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE) continue;
       const tile = document.createElement('div');
-      tile.className = `tile ${biomeAt(x, y)}`;
       const biome = biomeAt(x, y);
       tile.className = `tile ${biome}`;
       const p = iso(x - px + VIEW_RADIUS, y - py + VIEW_RADIUS);
       tile.style.left = `${p.x}px`;
       tile.style.top = `${p.y}px`;
-      el.world.appendChild(tile);
+      fragment.appendChild(tile);
       if (decoSeed(x, y) < 0.22) {
         const deco = document.createElement('div');
         deco.className = `deco ${decoForBiome(biome)}`;
         deco.style.left = `${p.x + 34}px`;
         deco.style.top = `${p.y + 8}px`;
-        el.world.appendChild(deco);
+        fragment.appendChild(deco);
       }
     }
   }
-  drawMonsters();
+  fragment.appendChild(drawMonsters());
+  el.world.appendChild(fragment);
   el.world.appendChild(el.player);
   renderPlayer();
 }
@@ -253,8 +254,13 @@ function monsterSvg(name, h) {
 function respawnMonsters() {
   if (!state.bestiary.length) return;
   state.monsters = [];
+  replenishMonsters(14);
+}
+
+function replenishMonsters(targetCount = 14) {
+  if (!state.bestiary.length) return;
   const p = state.player.pos;
-  for (let i = 0; i < 14; i += 1) {
+  for (let i = state.monsters.length; i < targetCount; i += 1) {
     const t = state.bestiary[rand(0, state.bestiary.length - 1)];
     state.monsters.push({
       ...t,
@@ -269,6 +275,7 @@ function respawnMonsters() {
 
 function drawMonsters() {
   const { x: px, y: py } = state.player.pos;
+  const fragment = document.createDocumentFragment();
   state.monsters.forEach((m) => {
     if (Math.abs(m.x - px) > VIEW_RADIUS || Math.abs(m.y - py) > VIEW_RADIUS) return;
     const node = document.createElement('div');
@@ -277,8 +284,9 @@ function drawMonsters() {
     const p = iso(m.x - px + VIEW_RADIUS, m.y - py + VIEW_RADIUS);
     node.style.left = `${p.x + 38}px`;
     node.style.top = `${p.y + 24}px`;
-    el.world.appendChild(node);
+    fragment.appendChild(node);
   });
+  return fragment;
 }
 
 function bindTabs() {
@@ -359,7 +367,7 @@ function moveStep(ts) {
   renderMapChunk();
   updateHud();
   checkEncounter();
-  if (state.monsters.length < 6) respawnMonsters();
+  if (state.monsters.length < 6) replenishMonsters(14);
 }
 
 function checkEncounter() {
