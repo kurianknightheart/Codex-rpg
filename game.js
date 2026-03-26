@@ -81,33 +81,37 @@ const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 const SAVE_KEY = 'ashen_marches_save_v1';
 
 function knightSvg(weaponHue = 24, armorHue = 220, trimHue = 45) {
-  let chain = '';
-  for (let y = 66; y <= 112; y += 6) {
-    for (let x = 44; x <= 76; x += 6) {
-      chain += `<circle cx='${x}' cy='${y}' r='1.4' fill='hsl(${armorHue} 20% 35%)'/>`;
-    }
-  }
-  let trimStuds = '';
-  for (let i = 0; i < 12; i += 1) {
-    trimStuds += `<circle cx='${46 + i * 2.4}' cy='62' r='0.9' fill='hsl(${trimHue} 70% 62%)'/>`;
-  }
   return `<svg viewBox='0 0 120 160' xmlns='http://www.w3.org/2000/svg'>
+    <defs>
+      <linearGradient id='armorGrad' x1='0' y1='0' x2='0' y2='1'>
+        <stop offset='0%' stop-color='hsl(${armorHue} 30% 62%)'/>
+        <stop offset='100%' stop-color='hsl(${armorHue} 34% 28%)'/>
+      </linearGradient>
+      <linearGradient id='trimGrad' x1='0' y1='0' x2='1' y2='1'>
+        <stop offset='0%' stop-color='hsl(${trimHue} 72% 68%)'/>
+        <stop offset='100%' stop-color='hsl(${trimHue} 52% 34%)'/>
+      </linearGradient>
+      <radialGradient id='aura' cx='50%' cy='42%' r='55%'>
+        <stop offset='0%' stop-color='rgba(157,117,191,.28)'/>
+        <stop offset='100%' stop-color='rgba(31,19,45,0)'/>
+      </radialGradient>
+    </defs>
+    <ellipse cx='60' cy='86' rx='42' ry='58' fill='url(#aura)'/>
     <g stroke='#18131f' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'>
-      <path d='M45 150 L60 88 L75 150 Z' fill='hsl(${trimHue} 48% 30%)'/>
-      <ellipse cx='60' cy='43' rx='20' ry='18' fill='hsl(32 22% 76%)'/>
-      <path d='M40 45 Q60 18 80 45 L78 56 L42 56 Z' fill='hsl(${armorHue} 22% 64%)'/>
-      <rect x='38' y='60' width='44' height='54' rx='12' fill='hsl(${armorHue} 24% 54%)'/>
-      <rect x='31' y='68' width='10' height='38' rx='4' fill='hsl(${armorHue} 20% 46%)'/>
-      <rect x='79' y='68' width='10' height='38' rx='4' fill='hsl(${armorHue} 20% 46%)'/>
-      <path d='M51 64 L69 64 L66 88 L54 88 Z' fill='hsl(${trimHue} 65% 44%)'/>
-      ${trimStuds}
-      ${chain}
-      <rect x='47' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 40%)'/>
-      <rect x='61' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 40%)'/>
-      <rect x='45' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 28%)'/>
-      <rect x='59' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 28%)'/>
-      <path d='M86 44 L92 100 L84 101 L78 47 Z' fill='hsl(${weaponHue} 60% 66%)'/>
-      <rect x='74' y='81' width='24' height='6' rx='2' transform='rotate(10 86 84)' fill='hsl(${weaponHue} 45% 34%)'/>
+      <path d='M42 150 L60 92 L78 150 Z' fill='url(#trimGrad)'/>
+      <ellipse cx='60' cy='43' rx='18' ry='16' fill='hsl(30 18% 78%)'/>
+      <path d='M40 46 Q60 18 80 46 L78 58 L42 58 Z' fill='url(#armorGrad)'/>
+      <rect x='37' y='60' width='46' height='56' rx='14' fill='url(#armorGrad)'/>
+      <path d='M44 66 L76 66 L73 108 L47 108 Z' fill='hsl(${trimHue} 58% 38%)' opacity='.8'/>
+      <path d='M46 72 L74 72 M46 80 L74 80 M46 88 L74 88 M46 96 L74 96' stroke='hsl(${trimHue} 62% 62%)' stroke-width='1'/>
+      <rect x='29' y='68' width='10' height='40' rx='4' fill='hsl(${armorHue} 24% 40%)'/>
+      <rect x='81' y='68' width='10' height='40' rx='4' fill='hsl(${armorHue} 24% 40%)'/>
+      <rect x='47' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/>
+      <rect x='61' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/>
+      <rect x='45' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 25%)'/>
+      <rect x='59' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 25%)'/>
+      <path d='M86 43 L92 101 L83 102 L78 46 Z' fill='hsl(${weaponHue} 58% 70%)'/>
+      <rect x='74' y='81' width='24' height='6' rx='2' transform='rotate(10 86 84)' fill='hsl(${weaponHue} 48% 28%)'/>
       <circle cx='54' cy='44' r='2.1' fill='#1d171d'/>
       <circle cx='66' cy='44' r='2.1' fill='#1d171d'/>
     </g>
@@ -357,7 +361,11 @@ function renderEquipment() {
     const rarityClass = it ? `rarity-${it.rarity}` : '';
     const selectedClass = it && state.selectedItemId === it.id ? 'selected' : '';
     slotNode.className = `equip-slot ${it ? '' : 'empty'} ${rarityClass} ${selectedClass}`;
-    slotNode.innerHTML = `${it ? iconSvg(it) : `<span class="slot-empty">+</span>`}<span class="slot-label">${slotLabel(slot)}</span>`;
+    slotNode.innerHTML = `
+      ${slotFrameSvg(slot, it, Boolean(selectedClass))}
+      <div class="slot-core">${it ? iconSvg(it) : `<span class="slot-empty">${slotPlaceholderGlyph(slot)}</span>`}</div>
+      <span class="slot-label">${slotLabel(slot)}</span>
+    `;
     slotNode.addEventListener('click', () => {
       if (!it) return;
       state.selectedItemId = it.id;
@@ -382,6 +390,34 @@ function renderEquipment() {
 
   board.append(leftCol, center, rightCol);
   el.equipment.append(board, bottomRow);
+}
+
+function slotFrameSvg(slot, item, selected) {
+  const rarity = item?.rarity || 'common';
+  const hue = rarity === 'legendary' ? 40 : rarity === 'epic' ? 280 : rarity === 'rare' ? 210 : rarity === 'uncommon' ? 140 : 230;
+  const glow = selected ? 70 : 50;
+  return `<svg class="slot-frame" viewBox="0 0 100 100" aria-hidden="true">
+    <defs>
+      <linearGradient id="metal-${slot}" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="hsl(${hue} 20% 40%)"/>
+        <stop offset="50%" stop-color="hsl(${hue} 22% 18%)"/>
+        <stop offset="100%" stop-color="hsl(${hue} 28% 32%)"/>
+      </linearGradient>
+    </defs>
+    <rect x="6" y="6" width="88" height="88" rx="17" fill="url(#metal-${slot})" opacity=".95"/>
+    <rect x="12" y="12" width="76" height="76" rx="13" fill="none" stroke="hsl(${hue} 45% ${glow}%)" stroke-width="2.6" opacity=".7"/>
+    <path d="M20 20 L33 20 L20 33 Z M80 20 L67 20 L80 33 Z M20 80 L33 80 L20 67 Z M80 80 L67 80 L80 67 Z" fill="hsl(${hue} 55% 62%)" opacity=".35"/>
+    <circle cx="50" cy="50" r="24" fill="none" stroke="hsl(${hue} 50% 58%)" stroke-width="1.6" opacity=".34"/>
+  </svg>`;
+}
+
+function slotPlaceholderGlyph(slot) {
+  if (slot.includes('ring')) return '◌';
+  if (slot.includes('trinket')) return '✦';
+  if (slot === 'weapon') return '⚔';
+  if (slot === 'offhand') return '🛡';
+  if (slot === 'boots') return '⋈';
+  return '✧';
 }
 
 function renderInventory() {
