@@ -66,6 +66,7 @@ const el = {
   characterDetails: document.getElementById('characterDetails'),
   characterStatsPanel: document.getElementById('characterStatsPanel'),
   itemDetails: document.getElementById('itemDetails'),
+  newGameBtn: document.getElementById('newGameBtn'),
   saveBtn: document.getElementById('saveBtn'),
   loadBtn: document.getElementById('loadBtn'),
   lootDrop: document.getElementById('lootDrop'),
@@ -685,6 +686,13 @@ function loadGame() {
   }
 }
 
+function startNewGame() {
+  const confirmed = window.confirm('Start a new game? This will delete your current saved progress.');
+  if (!confirmed) return;
+  localStorage.removeItem(SAVE_KEY);
+  window.location.reload();
+}
+
 function moveStep(ts) {
   if (!state.destination || state.mode !== 'explore') return;
   if (ts - state.lastStep < state.stepMs) return;
@@ -907,6 +915,7 @@ function init() {
   }
   el.saveBtn.addEventListener('click', saveGame);
   el.loadBtn.addEventListener('click', loadGame);
+  if (el.newGameBtn) el.newGameBtn.addEventListener('click', startNewGame);
   const autoSaveRaw = localStorage.getItem(SAVE_KEY);
   if (autoSaveRaw) {
     try {
