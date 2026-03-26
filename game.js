@@ -1,6 +1,23 @@
 const MAP_SIZE = 256;
 const VIEW_RADIUS = 11;
-const SLOT_ORDER = ['weapon', 'helmet', 'offhand', 'armor', 'belt', 'leggings', 'boots', 'gloves', 'necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'];
+const SLOT_ORDER = ['weapon', 'helmet', 'chestArmor', 'armor', 'offhand', 'belt', 'leggings', 'boots', 'gloves', 'necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'];
+const DEFENSE_SLOTS = ['helmet', 'chestArmor', 'armor', 'offhand', 'belt', 'leggings', 'boots', 'gloves'];
+const SLOT_LABELS = {
+  weapon: 'Weapon',
+  helmet: 'Helmet',
+  chestArmor: 'Chest Armor',
+  armor: 'Armor',
+  offhand: 'Offhand',
+  belt: 'Belt',
+  leggings: 'Leggings',
+  boots: 'Boots',
+  gloves: 'Gloves',
+  necklace: 'Necklace',
+  ring1: 'Ring 1',
+  ring2: 'Ring 2',
+  trinket1: 'Trinket 1',
+  trinket2: 'Trinket 2',
+};
 
 const state = {
   mode: 'explore',
@@ -44,6 +61,7 @@ const el = {
   characterDetails: document.getElementById('characterDetails'),
   saveBtn: document.getElementById('saveBtn'),
   loadBtn: document.getElementById('loadBtn'),
+  lootDrop: document.getElementById('lootDrop'),
 };
 
 function addLog(t) { const p = document.createElement('p'); p.textContent = `[Day ${Math.floor(state.day)}] ${t}`; el.log.prepend(p); }
@@ -87,7 +105,7 @@ function knightSvg(weaponHue = 24, armorHue = 220, trimHue = 45) {
 
 function applyKnight() {
   const w = state.player.equipment.weapon?.appearance?.hue ?? 24;
-  const a = state.player.equipment.armor?.appearance?.hue ?? 220;
+  const a = state.player.equipment.chestArmor?.appearance?.hue ?? state.player.equipment.armor?.appearance?.hue ?? 220;
   const t = state.player.equipment.necklace?.appearance?.hue ?? 45;
   const svg = knightSvg(w, a, t);
   el.player.innerHTML = svg;
@@ -222,7 +240,7 @@ function iconSvg(item) {
     if (item.name.includes('War Pick')) return `<svg viewBox='0 0 40 40'><path d='M13 10 L27 10 L30 14 L10 14 Z' fill='hsl(${h} 55% 74%)'/><rect x='18' y='12' width='4' height='22' rx='2' fill='hsl(${h} 35% 34%)'/><path d='M27 10 L34 4 L31 14 Z' fill='hsl(${h} 65% 72%)'/>${studs}</svg>`;
     return `<svg viewBox='0 0 40 40'><rect x='18' y='3' width='4' height='25' rx='2' fill='hsl(${h} 62% 67%)'/><rect x='11' y='24' width='18' height='4' rx='2' fill='hsl(${h} 40% 30%)'/><rect x='18' y='27' width='4' height='8' rx='2' fill='hsl(${h} 35% 24%)'/><circle cx='20' cy='${v3}' r='2' fill='hsl(${h} 70% 78%)'/>${studs}</svg>`;
   }
-  if (['armor','helmet','offhand','belt','leggings','boots','gloves'].includes(item.slot)) {
+  if (DEFENSE_SLOTS.includes(item.slot)) {
     return `<svg viewBox='0 0 40 40'><rect x='8' y='8' width='24' height='24' rx='7' fill='hsl(${h} 34% 45%)'/><path d='M${v1} 12 L${v2} 30 L${32 - (idNum % 6)} 12' stroke='hsl(${h} 50% 70%)' stroke-width='2' fill='none'/><rect x='13' y='13' width='14' height='14' rx='3' fill='hsl(${h} 24% 32%)'/><circle cx='16' cy='16' r='1'/><circle cx='20' cy='16' r='1'/><circle cx='24' cy='16' r='1'/><circle cx='16' cy='20' r='1'/><circle cx='20' cy='20' r='1'/><circle cx='24' cy='20' r='1'/><circle cx='16' cy='24' r='1'/><circle cx='20' cy='24' r='1'/><circle cx='24' cy='24' r='1'/></svg>`;
   }
   return `<svg viewBox='0 0 40 40'>${core}<circle cx='20' cy='20' r='${6 + (idNum % 4)}' fill='none' stroke='hsl(${h} 70% 76%)' stroke-width='1.6'/><circle cx='20' cy='20' r='2.5' fill='hsl(${h} 85% 85%)'/><circle cx='14' cy='14' r='1.2'/><circle cx='26' cy='14' r='1.2'/><circle cx='14' cy='26' r='1.2'/><circle cx='26' cy='26' r='1.2'/></svg>`;
@@ -230,7 +248,7 @@ function iconSvg(item) {
 
 function itemDesc(slot, s) {
   if (slot === 'weapon') return `DMG ${s.damage} | SPD ${s.attackSpeed} | CRIT ${s.crit}% | REACH ${s.reach} | STUN ${s.stunChance}%`;
-  if (['armor','helmet','offhand','belt','leggings','boots','gloves'].includes(slot)) return `DEF ${s.defense} | HP +${s.hpIncrease} | EVA ${s.evasion}%`;
+  if (DEFENSE_SLOTS.includes(slot)) return `DEF ${s.defense} | HP +${s.hpIncrease} | EVA ${s.evasion}%`;
   return `STR +${s.strength} | INT +${s.intelligence} | WIL +${s.willpower} | CRIT +${s.crit}%`;
 }
 
@@ -238,7 +256,8 @@ function generateItems() {
   state.itemPool = [];
   const names = {
     weapon:['Knight Sword','Spear','Falchion','Mace','War Pick'], helmet:['Iron Coif','Nasal Helm','Visor','Padded Coif','Chapel Helm'],
-    offhand:['Kite Shield','Buckler','Parry Dagger','Hook Shield','Lantern Guard'], armor:['Gambeson','Mail Hauberk','Steel Chestplate','Brigandine','Cuir Bouilli'],
+    chestArmor:['Gambeson','Mail Hauberk','Steel Chestplate','Brigandine','Cuir Bouilli'], armor:['Spaulders','Lamellar Mantle','Knight Pauldrons','Scale Wrap','Warder Harness'],
+    offhand:['Kite Shield','Buckler','Parry Dagger','Hook Shield','Lantern Guard'],
     belt:['Studded Belt','Mercenary Belt','Oath Sash','Chain Belt','Hunter Cord'], leggings:['Rider Leggings','Mail Chausses','Riveted Cuisses','Padded Hose','Ash Greaves'],
     boots:['Riding Boots','Mud Boots','Sabatons','Path Boots','Barrow Boots'], gloves:['Padded Gloves','Mail Mitts','Grip Gloves','Ash Gloves','Knight Gauntlets'],
     necklace:['Reliquary','Sun Chain','Bone Charm','Oath Locket','Runed Necklace'], ring1:['Silver Ring','Garnet Ring','Ash Ring','Rune Ring','Knight Signet'],
@@ -253,7 +272,13 @@ function generateItems() {
       const p = tier + (i % 3);
       const s = {strength:0,intelligence:0,willpower:0,damage:0,attackSpeed:0,crit:0,reach:0,stunChance:0,defense:0,hpIncrease:0,evasion:0};
       if (slot === 'weapon') { s.damage = 8 + p * 3; s.attackSpeed = +(0.8 + p * 0.05).toFixed(2); s.crit = 3 + p * 2; s.reach = 1 + Math.floor(p/2); s.stunChance = 2 + p; s.strength = Math.floor(p/2); }
-      else if (['armor','helmet','offhand','belt','leggings','boots','gloves'].includes(slot)) { s.defense = 4 + p * 2; s.hpIncrease = 10 + p * 5; s.evasion = Math.max(1, 10 - p); }
+      else if (DEFENSE_SLOTS.includes(slot)) {
+        const chestBonus = slot === 'chestArmor' ? 3 : 0;
+        const armorBonus = slot === 'armor' ? 1 : 0;
+        s.defense = 4 + p * 2 + chestBonus + armorBonus;
+        s.hpIncrease = 10 + p * 5 + chestBonus * 3;
+        s.evasion = Math.max(1, 10 - p - chestBonus + armorBonus);
+      }
       else { s.strength = slot.includes('ring') ? 1 : 0; s.intelligence = Math.floor(p/2); s.willpower = Math.ceil(p/2); s.crit = p; }
       const rarity = rar[Math.min(3, tier - 1)];
       state.itemPool.push({ id:`it-${++id}`, slot, rarity, tier, name:`${rarity.toUpperCase()} ${names[slot][i%5]} ${tier}`, stats:s, appearance:{hue:(si*27+i*9)%360} });
@@ -277,7 +302,7 @@ function renderEquipment() {
   SLOT_ORDER.forEach((slot) => {
     const it = state.player.equipment[slot];
     const row = document.createElement('div'); row.className = 'slot-row';
-    row.innerHTML = `<strong>${slot}</strong><small>${it ? it.name : 'Empty'}</small><small>${it ? itemDesc(slot, it.stats) : 'No stats'}</small>`;
+    row.innerHTML = `<strong>${slotLabel(slot)}</strong><small>${it ? it.name : 'Empty'}</small><small>${it ? itemDesc(slot, it.stats) : 'No stats'}</small>`;
     el.equipment.appendChild(row);
   });
   renderEquipmentOverlay();
@@ -287,7 +312,7 @@ function renderEquipmentOverlay() {
   if (!el.equipOverlay) return;
   el.equipOverlay.innerHTML = '';
   const slotPositions = {
-    helmet: [50, 10], armor: [50, 30], weapon: [82, 46], offhand: [18, 46],
+    helmet: [50, 10], chestArmor: [50, 30], armor: [50, 43], weapon: [82, 46], offhand: [18, 46],
     gloves: [50, 53], belt: [50, 67], leggings: [50, 80], boots: [50, 92],
     necklace: [50, 20], ring1: [14, 64], ring2: [86, 64], trinket1: [20, 87], trinket2: [80, 87],
   };
@@ -310,13 +335,15 @@ function renderInventory() {
     if (filter === 'all') return true;
     if (['common', 'rare', 'magical', 'legendary'].includes(filter)) return item.rarity === filter;
     if (filter === 'weapon') return item.slot === 'weapon';
-    if (filter === 'armor') return ['helmet', 'armor', 'offhand', 'belt', 'leggings', 'boots', 'gloves'].includes(item.slot);
+    if (filter === 'armor') return DEFENSE_SLOTS.includes(item.slot);
+    if (filter === 'chestArmor') return item.slot === 'chestArmor';
+    if (filter === 'helmet') return item.slot === 'helmet';
     if (filter === 'jewelry') return ['necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'].includes(item.slot);
     return true;
   });
   filtered.slice(0, 40).forEach((item) => {
     const c = document.createElement('div'); c.className = 'item-card';
-    c.innerHTML = `<div class='item-icon'>${iconSvg(item)}</div><div class='item-meta'><strong>${item.name}</strong><small>${item.slot.toUpperCase()} · ${item.rarity}</small><small>${itemDesc(item.slot, item.stats)}</small><button>Equip</button></div>`;
+    c.innerHTML = `<div class='item-icon'>${iconSvg(item)}</div><div class='item-meta'><strong>${item.name}</strong><small>${slotLabel(item.slot)} · ${item.rarity}</small><small>${itemDesc(item.slot, item.stats)}</small><button>Equip</button></div>`;
     c.querySelector('button').addEventListener('click', () => equipItem(item));
     el.inventory.appendChild(c);
   });
@@ -615,6 +642,7 @@ function combatAction(action) {
     if (loot) {
       state.player.inventory.unshift(loot);
       addLog(`Loot found: ${loot.name}.`);
+      showLootDrop(loot);
       renderInventory();
     }
     state.monsters = state.monsters.filter((m) => m.uid !== state.encounter.uid);
@@ -628,10 +656,32 @@ function rollLoot(monster) {
   const tier = monster.tier || 1;
   const rarityAllowed = tier === 1 ? ['common'] : tier === 2 ? ['common', 'rare'] : tier === 3 ? ['rare', 'magical'] : ['magical', 'legendary'];
   const pool = state.itemPool.filter((it) => it.tier <= Math.min(4, tier + 1) && rarityAllowed.includes(it.rarity));
-  if (!pool.length) return null;
-  const weighted = pool.filter((it) => it.slot === 'armor' || it.slot === 'weapon');
-  if (weighted.length && Math.random() > 0.35) return weighted[rand(0, weighted.length - 1)];
-  return pool[rand(0, pool.length - 1)];
+  const fallbackPool = state.itemPool.length ? state.itemPool : state.player.inventory;
+  const sourcePool = pool.length ? pool : fallbackPool;
+  if (!sourcePool.length) return null;
+  const weighted = sourcePool.filter((it) => DEFENSE_SLOTS.includes(it.slot) || it.slot === 'weapon');
+  const picked = (weighted.length && Math.random() > 0.35)
+    ? weighted[rand(0, weighted.length - 1)]
+    : sourcePool[rand(0, sourcePool.length - 1)];
+  return {
+    ...picked,
+    id: `loot-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+    name: picked.name,
+    stats: { ...picked.stats },
+    appearance: { ...picked.appearance },
+  };
+}
+
+function showLootDrop(item) {
+  if (!el.lootDrop) return;
+  el.lootDrop.textContent = `Loot Acquired: ${item.name}`;
+  el.lootDrop.classList.remove('show');
+  void el.lootDrop.offsetWidth;
+  el.lootDrop.classList.add('show');
+}
+
+function slotLabel(slot) {
+  return SLOT_LABELS[slot] || slot;
 }
 
 function enemyTurn(mult) {
