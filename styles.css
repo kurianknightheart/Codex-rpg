@@ -44,8 +44,22 @@ body { margin: 0; color: var(--text); background: radial-gradient(circle at top,
 .deco.heather { width: 14px; height: 10px; background: #8b678e; border-radius: 10px; }
 .player { position: absolute; width: 82px; height: 106px; transform: translate(-50%,-74%); z-index: 10; pointer-events: none; display:block; }
 .player svg{width:100%;height:100%;filter:drop-shadow(0 4px 5px rgba(0,0,0,.5));shape-rendering:geometricPrecision}
-.player.walk{animation:walk .2s ease-in-out infinite alternate}
-@keyframes walk{from{transform:translate(-50%,-74%) rotate(-1deg)}to{transform:translate(-50%,-70%) rotate(1deg)}}
+.player.walk{animation:walk .24s linear infinite}
+.player.walk svg{animation:stride .24s linear infinite}
+@keyframes walk{
+  0%{transform:translate(-50%,-74%)}
+  25%{transform:translate(-50%,-72%) rotate(-1deg)}
+  50%{transform:translate(-50%,-70%)}
+  75%{transform:translate(-50%,-72%) rotate(1deg)}
+  100%{transform:translate(-50%,-74%)}
+}
+@keyframes stride{
+  0%{transform:translateX(0)}
+  25%{transform:translateX(-1px)}
+  50%{transform:translateX(0)}
+  75%{transform:translateX(1px)}
+  100%{transform:translateX(0)}
+}
 @keyframes bob{from{transform:translate(-50%,-52%)}to{transform:translate(-50%,-48%)}}
 .controls-row{margin-top:.45rem;display:flex;gap:.6rem;align-items:center}
 .encounter{width:100%;font-size:.82rem;color:var(--muted);padding:.5rem;border:1px solid #4b3b5d;border-radius:9px;background:#21182b}

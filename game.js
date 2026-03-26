@@ -216,7 +216,11 @@ function iconSvg(item) {
   for (let i = 0; i < 10; i += 1) studs += `<circle cx='${8 + i * 2.4}' cy='${34 - (i % 2)}' r='0.9' fill='hsl(${h} 20% 25%)'/>`;
   const core = `<polygon points='20,4 ${30 + (idNum % 4)},14 20,36 ${10 - (idNum % 4)},14' fill='hsl(${h} 58% ${rarityGlow}%)'/>${studs}`;
   if (item.slot === 'weapon') {
-    return `<svg viewBox='0 0 40 40'><rect x='18' y='3' width='4' height='25' rx='2' fill='hsl(${h} 62% 67%)'/><rect x='11' y='24' width='18' height='4' rx='2' fill='hsl(${h} 40% 30%)'/><rect x='18' y='27' width='4' height='8' rx='2' fill='hsl(${h} 35% 24%)'/><circle cx='20' cy='${v3}' r='2' fill='hsl(${h} 70% 78%)'/><circle cx='20' cy='6' r='1.2' fill='hsl(${h} 80% 90%)'/><circle cx='20' cy='10' r='1.1' fill='hsl(${h} 80% 90%)'/><circle cx='20' cy='14' r='1.0' fill='hsl(${h} 80% 90%)'/><circle cx='20' cy='18' r='0.9' fill='hsl(${h} 80% 90%)'/>${studs}</svg>`;
+    if (item.name.includes('Spear')) return `<svg viewBox='0 0 40 40'><path d='M20 2 L23 8 L20 13 L17 8 Z' fill='hsl(${h} 80% 82%)'/><rect x='18' y='9' width='4' height='26' rx='2' fill='hsl(${h} 36% 38%)'/>${studs}</svg>`;
+    if (item.name.includes('Falchion')) return `<svg viewBox='0 0 40 40'><path d='M14 6 Q28 8 24 30 Q17 26 12 10 Z' fill='hsl(${h} 62% 72%)'/><rect x='14' y='24' width='12' height='3' rx='2' fill='hsl(${h} 30% 28%)'/>${studs}</svg>`;
+    if (item.name.includes('Mace')) return `<svg viewBox='0 0 40 40'><circle cx='20' cy='8' r='6' fill='hsl(${h} 30% 44%)'/><rect x='18' y='12' width='4' height='22' rx='2' fill='hsl(${h} 35% 34%)'/>${studs}</svg>`;
+    if (item.name.includes('War Pick')) return `<svg viewBox='0 0 40 40'><path d='M13 10 L27 10 L30 14 L10 14 Z' fill='hsl(${h} 55% 74%)'/><rect x='18' y='12' width='4' height='22' rx='2' fill='hsl(${h} 35% 34%)'/><path d='M27 10 L34 4 L31 14 Z' fill='hsl(${h} 65% 72%)'/>${studs}</svg>`;
+    return `<svg viewBox='0 0 40 40'><rect x='18' y='3' width='4' height='25' rx='2' fill='hsl(${h} 62% 67%)'/><rect x='11' y='24' width='18' height='4' rx='2' fill='hsl(${h} 40% 30%)'/><rect x='18' y='27' width='4' height='8' rx='2' fill='hsl(${h} 35% 24%)'/><circle cx='20' cy='${v3}' r='2' fill='hsl(${h} 70% 78%)'/>${studs}</svg>`;
   }
   if (['armor','helmet','offhand','belt','leggings','boots','gloves'].includes(item.slot)) {
     return `<svg viewBox='0 0 40 40'><rect x='8' y='8' width='24' height='24' rx='7' fill='hsl(${h} 34% 45%)'/><path d='M${v1} 12 L${v2} 30 L${32 - (idNum % 6)} 12' stroke='hsl(${h} 50% 70%)' stroke-width='2' fill='none'/><rect x='13' y='13' width='14' height='14' rx='3' fill='hsl(${h} 24% 32%)'/><circle cx='16' cy='16' r='1'/><circle cx='20' cy='16' r='1'/><circle cx='24' cy='16' r='1'/><circle cx='16' cy='20' r='1'/><circle cx='20' cy='20' r='1'/><circle cx='24' cy='20' r='1'/><circle cx='16' cy='24' r='1'/><circle cx='20' cy='24' r='1'/><circle cx='24' cy='24' r='1'/></svg>`;
@@ -234,7 +238,7 @@ function generateItems() {
   state.itemPool = [];
   const names = {
     weapon:['Knight Sword','Spear','Falchion','Mace','War Pick'], helmet:['Iron Coif','Nasal Helm','Visor','Padded Coif','Chapel Helm'],
-    offhand:['Kite Shield','Buckler','Parry Dagger','Hook Shield','Lantern Guard'], armor:['Gambeson','Mail Hauberk','Scale Coat','Brigandine','Cuir Bouilli'],
+    offhand:['Kite Shield','Buckler','Parry Dagger','Hook Shield','Lantern Guard'], armor:['Gambeson','Mail Hauberk','Steel Chestplate','Brigandine','Cuir Bouilli'],
     belt:['Studded Belt','Mercenary Belt','Oath Sash','Chain Belt','Hunter Cord'], leggings:['Rider Leggings','Mail Chausses','Riveted Cuisses','Padded Hose','Ash Greaves'],
     boots:['Riding Boots','Mud Boots','Sabatons','Path Boots','Barrow Boots'], gloves:['Padded Gloves','Mail Mitts','Grip Gloves','Ash Gloves','Knight Gauntlets'],
     necklace:['Reliquary','Sun Chain','Bone Charm','Oath Locket','Runed Necklace'], ring1:['Silver Ring','Garnet Ring','Ash Ring','Rune Ring','Knight Signet'],
@@ -625,9 +629,9 @@ function rollLoot(monster) {
   const rarityAllowed = tier === 1 ? ['common'] : tier === 2 ? ['common', 'rare'] : tier === 3 ? ['rare', 'magical'] : ['magical', 'legendary'];
   const pool = state.itemPool.filter((it) => it.tier <= Math.min(4, tier + 1) && rarityAllowed.includes(it.rarity));
   if (!pool.length) return null;
-  const roll = Math.random();
-  if (roll > 0.72) return pool[rand(0, pool.length - 1)];
-  return null;
+  const weighted = pool.filter((it) => it.slot === 'armor' || it.slot === 'weapon');
+  if (weighted.length && Math.random() > 0.35) return weighted[rand(0, weighted.length - 1)];
+  return pool[rand(0, pool.length - 1)];
 }
 
 function enemyTurn(mult) {
