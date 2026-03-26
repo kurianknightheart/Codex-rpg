@@ -25,6 +25,7 @@ const state = {
   monsters: [],
   encounter: null,
   lastRespawnTick: 0,
+  inventoryFilter: 'all',
 };
 
 const el = {
@@ -36,6 +37,7 @@ const el = {
   actions: document.getElementById('actions'),
   equipment: document.getElementById('equipmentSlots'),
   inventory: document.getElementById('inventory'),
+  inventoryFilter: document.getElementById('inventoryFilter'),
   log: document.getElementById('log'),
   characterPreview: document.getElementById('characterPreview'),
   equipOverlay: document.getElementById('equipOverlay'),
@@ -50,17 +52,29 @@ const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 const SAVE_KEY = 'ashen_marches_save_v1';
 
 function knightSvg(weaponHue = 24, armorHue = 220, trimHue = 45) {
+  let chain = '';
+  for (let y = 66; y <= 112; y += 6) {
+    for (let x = 44; x <= 76; x += 6) {
+      chain += `<circle cx='${x}' cy='${y}' r='1.4' fill='hsl(${armorHue} 20% 35%)'/>`;
+    }
+  }
+  let trimStuds = '';
+  for (let i = 0; i < 12; i += 1) {
+    trimStuds += `<circle cx='${46 + i * 2.4}' cy='62' r='0.9' fill='hsl(${trimHue} 70% 62%)'/>`;
+  }
   return `<svg viewBox='0 0 120 160' xmlns='http://www.w3.org/2000/svg'>
-    <g stroke='#18131f' stroke-width='2.6' stroke-linejoin='round' stroke-linecap='round'>
+    <g stroke='#18131f' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'>
       <path d='M45 150 L60 88 L75 150 Z' fill='hsl(${trimHue} 48% 30%)'/>
       <ellipse cx='60' cy='43' rx='20' ry='18' fill='hsl(32 22% 76%)'/>
       <path d='M40 45 Q60 18 80 45 L78 56 L42 56 Z' fill='hsl(${armorHue} 22% 64%)'/>
-      <rect x='38' y='60' width='44' height='44' rx='12' fill='hsl(${armorHue} 24% 54%)'/>
+      <rect x='38' y='60' width='44' height='54' rx='12' fill='hsl(${armorHue} 24% 54%)'/>
       <rect x='31' y='68' width='10' height='38' rx='4' fill='hsl(${armorHue} 20% 46%)'/>
       <rect x='79' y='68' width='10' height='38' rx='4' fill='hsl(${armorHue} 20% 46%)'/>
-      <path d='M51 64 L69 64 L66 84 L54 84 Z' fill='hsl(${trimHue} 65% 44%)'/>
-      <rect x='47' y='102' width='12' height='34' rx='4' fill='hsl(${armorHue} 18% 40%)'/>
-      <rect x='61' y='102' width='12' height='34' rx='4' fill='hsl(${armorHue} 18% 40%)'/>
+      <path d='M51 64 L69 64 L66 88 L54 88 Z' fill='hsl(${trimHue} 65% 44%)'/>
+      ${trimStuds}
+      ${chain}
+      <rect x='47' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 40%)'/>
+      <rect x='61' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 40%)'/>
       <rect x='45' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 28%)'/>
       <rect x='59' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 28%)'/>
       <path d='M86 44 L92 100 L84 101 L78 47 Z' fill='hsl(${weaponHue} 60% 66%)'/>
@@ -77,7 +91,9 @@ function applyKnight() {
   const t = state.player.equipment.necklace?.appearance?.hue ?? 45;
   const svg = knightSvg(w, a, t);
   el.player.innerHTML = svg;
-  el.characterPreview.innerHTML = svg;
+  const existingSvg = el.characterPreview.querySelector('svg');
+  if (existingSvg) existingSvg.remove();
+  el.characterPreview.insertAdjacentHTML('afterbegin', svg);
 }
 
 function iso(x, y) {
@@ -196,14 +212,16 @@ function iconSvg(item) {
   const v2 = 10 + (idNum % 14);
   const v3 = 18 + (idNum % 10);
   const rarityGlow = item.rarity === 'legendary' ? 75 : item.rarity === 'magical' ? 62 : item.rarity === 'rare' ? 55 : 45;
-  const core = `<polygon points='20,4 ${30 + (idNum % 4)},14 20,36 ${10 - (idNum % 4)},14' fill='hsl(${h} 58% ${rarityGlow}%)'/>`;
+  let studs = '';
+  for (let i = 0; i < 10; i += 1) studs += `<circle cx='${8 + i * 2.4}' cy='${34 - (i % 2)}' r='0.9' fill='hsl(${h} 20% 25%)'/>`;
+  const core = `<polygon points='20,4 ${30 + (idNum % 4)},14 20,36 ${10 - (idNum % 4)},14' fill='hsl(${h} 58% ${rarityGlow}%)'/>${studs}`;
   if (item.slot === 'weapon') {
-    return `<svg viewBox='0 0 40 40'><rect x='18' y='3' width='4' height='25' rx='2' fill='hsl(${h} 62% 67%)'/><rect x='11' y='24' width='18' height='4' rx='2' fill='hsl(${h} 40% 30%)'/><circle cx='20' cy='${v3}' r='2' fill='hsl(${h} 70% 78%)'/></svg>`;
+    return `<svg viewBox='0 0 40 40'><rect x='18' y='3' width='4' height='25' rx='2' fill='hsl(${h} 62% 67%)'/><rect x='11' y='24' width='18' height='4' rx='2' fill='hsl(${h} 40% 30%)'/><rect x='18' y='27' width='4' height='8' rx='2' fill='hsl(${h} 35% 24%)'/><circle cx='20' cy='${v3}' r='2' fill='hsl(${h} 70% 78%)'/><circle cx='20' cy='6' r='1.2' fill='hsl(${h} 80% 90%)'/><circle cx='20' cy='10' r='1.1' fill='hsl(${h} 80% 90%)'/><circle cx='20' cy='14' r='1.0' fill='hsl(${h} 80% 90%)'/><circle cx='20' cy='18' r='0.9' fill='hsl(${h} 80% 90%)'/>${studs}</svg>`;
   }
   if (['armor','helmet','offhand','belt','leggings','boots','gloves'].includes(item.slot)) {
-    return `<svg viewBox='0 0 40 40'><rect x='8' y='8' width='24' height='24' rx='7' fill='hsl(${h} 34% 45%)'/><path d='M${v1} 12 L${v2} 30 L${32 - (idNum % 6)} 12' stroke='hsl(${h} 50% 70%)' stroke-width='2' fill='none'/></svg>`;
+    return `<svg viewBox='0 0 40 40'><rect x='8' y='8' width='24' height='24' rx='7' fill='hsl(${h} 34% 45%)'/><path d='M${v1} 12 L${v2} 30 L${32 - (idNum % 6)} 12' stroke='hsl(${h} 50% 70%)' stroke-width='2' fill='none'/><rect x='13' y='13' width='14' height='14' rx='3' fill='hsl(${h} 24% 32%)'/><circle cx='16' cy='16' r='1'/><circle cx='20' cy='16' r='1'/><circle cx='24' cy='16' r='1'/><circle cx='16' cy='20' r='1'/><circle cx='20' cy='20' r='1'/><circle cx='24' cy='20' r='1'/><circle cx='16' cy='24' r='1'/><circle cx='20' cy='24' r='1'/><circle cx='24' cy='24' r='1'/></svg>`;
   }
-  return `<svg viewBox='0 0 40 40'>${core}<circle cx='20' cy='20' r='${6 + (idNum % 4)}' fill='none' stroke='hsl(${h} 70% 76%)' stroke-width='1.6'/></svg>`;
+  return `<svg viewBox='0 0 40 40'>${core}<circle cx='20' cy='20' r='${6 + (idNum % 4)}' fill='none' stroke='hsl(${h} 70% 76%)' stroke-width='1.6'/><circle cx='20' cy='20' r='2.5' fill='hsl(${h} 85% 85%)'/><circle cx='14' cy='14' r='1.2'/><circle cx='26' cy='14' r='1.2'/><circle cx='14' cy='26' r='1.2'/><circle cx='26' cy='26' r='1.2'/></svg>`;
 }
 
 function itemDesc(slot, s) {
@@ -283,7 +301,16 @@ function renderEquipmentOverlay() {
 
 function renderInventory() {
   el.inventory.innerHTML = '';
-  state.player.inventory.slice(0, 30).forEach((item) => {
+  const filter = state.inventoryFilter;
+  const filtered = state.player.inventory.filter((item) => {
+    if (filter === 'all') return true;
+    if (['common', 'rare', 'magical', 'legendary'].includes(filter)) return item.rarity === filter;
+    if (filter === 'weapon') return item.slot === 'weapon';
+    if (filter === 'armor') return ['helmet', 'armor', 'offhand', 'belt', 'leggings', 'boots', 'gloves'].includes(item.slot);
+    if (filter === 'jewelry') return ['necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'].includes(item.slot);
+    return true;
+  });
+  filtered.slice(0, 40).forEach((item) => {
     const c = document.createElement('div'); c.className = 'item-card';
     c.innerHTML = `<div class='item-icon'>${iconSvg(item)}</div><div class='item-meta'><strong>${item.name}</strong><small>${item.slot.toUpperCase()} · ${item.rarity}</small><small>${itemDesc(item.slot, item.stats)}</small><button>Equip</button></div>`;
     c.querySelector('button').addEventListener('click', () => equipItem(item));
@@ -644,6 +671,12 @@ function init() {
   bindMapTap();
   bindTabs();
   setExploreActions();
+  if (el.inventoryFilter) {
+    el.inventoryFilter.addEventListener('change', (ev) => {
+      state.inventoryFilter = ev.target.value;
+      renderInventory();
+    });
+  }
   el.saveBtn.addEventListener('click', saveGame);
   el.loadBtn.addEventListener('click', loadGame);
   const autoSaveRaw = localStorage.getItem(SAVE_KEY);
