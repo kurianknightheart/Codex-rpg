@@ -214,22 +214,44 @@ function renderInventory() {
 }
 
 function totalStat(k) { return Object.values(state.player.equipment).reduce((a, it) => a + (it?.stats?.[k] || 0), 0); }
+function derivedAttr(k) { return (state.player.stats[k] || 0) + totalStat(k); }
+
+function calculationSnapshot() {
+  const damage = totalStat('damage') + derivedAttr('strength') * 2;
+  const crit = (0.58 + totalStat('crit') * 0.01).toFixed(2);
+  const defense = totalStat('defense');
+  const hp = state.player.hp + totalStat('hpIncrease');
+  const evasion = (derivedAttr('dexterity') * 0.5 + totalStat('evasion')).toFixed(1);
+  return { damage, crit, defense, hp, evasion };
+}
+
 function updateHud() {
   el.coreStats.innerHTML = '';
   Object.entries(state.player.stats).forEach(([k, v]) => {
-    const d = document.createElement('div'); d.className = 'pill'; d.textContent = `${k.slice(0,3).toUpperCase()} ${v + totalStat(k)}`; el.coreStats.appendChild(d);
+    const d = document.createElement('div'); d.className = 'pill'; d.textContent = `${k.slice(0,3).toUpperCase()} ${derivedAttr(k)}`; el.coreStats.appendChild(d);
   });
   el.resourceBars.innerHTML = '';
-  [['HP', state.player.hp + totalStat('hpIncrease')], ['STM', state.player.stamina], ['FOC', state.player.focus], ['DEF', totalStat('defense')], ['DMG', totalStat('damage')]].forEach(([k, v]) => {
+  const calc = calculationSnapshot();
+  [['HP', calc.hp], ['STM', state.player.stamina], ['FOC', state.player.focus], ['DEF', calc.defense], ['DMG', calc.damage]].forEach(([k, v]) => {
     const d = document.createElement('div'); d.className = 'pill'; d.textContent = `${k} ${Math.round(v)}`; el.resourceBars.appendChild(d);
   });
 }
 
 function renderCharacterScreen() {
+  const calc = calculationSnapshot();
   el.characterDetails.innerHTML = `
-    <p><strong>Map:</strong> ${MAP_SIZE}x${MAP_SIZE} with biome noise (grass, swamp, frost, desert, ruins, water, roads).</p>
+    <p><strong>Map:</strong> ${MAP_SIZE}x${MAP_SIZE} with biome regions.</p>
     <p><strong>Position:</strong> (${state.player.pos.x}, ${state.player.pos.y})</p>
-    <p><strong>Equipped Damage:</strong> ${totalStat('damage')} | <strong>Defense:</strong> ${totalStat('defense')} | <strong>Evasion:</strong> ${totalStat('evasion')}%</p>
+    <p><strong>Strength:</strong> ${derivedAttr('strength')} <span class='formula'>Base ${state.player.stats.strength} + Gear ${totalStat('strength')}. Affects melee damage.</span></p>
+    <p><strong>Dexterity:</strong> ${derivedAttr('dexterity')} <span class='formula'>Base ${state.player.stats.dexterity} + Gear ${totalStat('dexterity')}. Affects evasion and precision.</span></p>
+    <p><strong>Intelligence:</strong> ${derivedAttr('intelligence')} <span class='formula'>Base ${state.player.stats.intelligence} + Gear ${totalStat('intelligence')}. Affects assess/utility scaling.</span></p>
+    <p><strong>Endurance:</strong> ${derivedAttr('endurance')} <span class='formula'>Base ${state.player.stats.endurance} + Gear ${totalStat('endurance')}. Affects survival in exchanges.</span></p>
+    <p><strong>Willpower:</strong> ${derivedAttr('willpower')} <span class='formula'>Base ${state.player.stats.willpower} + Gear ${totalStat('willpower')}. Helps guard/focus resilience.</span></p>
+    <p><strong>Damage Formula:</strong> ${calc.damage} <span class='formula'>Weapon Damage ${totalStat('damage')} + (Strength ${derivedAttr('strength')} × 2)</span></p>
+    <p><strong>Crit Chance:</strong> ${Math.round(calc.crit * 100)}% <span class='formula'>(${calc.crit}) = base 0.58 + CritStat ${totalStat('crit')} × 0.01</span></p>
+    <p><strong>Defense:</strong> ${calc.defense} <span class='formula'>Sum of gear defense values.</span></p>
+    <p><strong>Evasion Rating:</strong> ${calc.evasion}% <span class='formula'>(Dexterity ${derivedAttr('dexterity')} × 0.5) + Gear Evasion ${totalStat('evasion')}</span></p>
+    <p><strong>Effective HP:</strong> ${calc.hp} <span class='formula'>Current HP ${state.player.hp} + HP bonus ${totalStat('hpIncrease')}</span></p>
   `;
 }
 
