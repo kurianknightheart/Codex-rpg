@@ -346,29 +346,16 @@ function equipItem(item) {
 
 function renderEquipment() {
   el.equipment.innerHTML = '';
-  const slotPositions = {
-    helmet: [50, 11],
-    necklace: [50, 24],
-    chestArmor: [50, 39],
-    gloves: [26, 40],
-    weapon: [14, 56],
-    offhand: [86, 56],
-    ring1: [24, 71],
-    ring2: [76, 71],
-    boots: [50, 83],
-    cape: [50, 95],
-    trinket1: [18, 90],
-    trinket2: [82, 90],
-  };
-  SLOT_ORDER.forEach((slot) => {
+  const leftSlots = ['helmet', 'gloves', 'weapon', 'ring1', 'trinket1'];
+  const rightSlots = ['necklace', 'chestArmor', 'offhand', 'ring2', 'trinket2'];
+  const bottomSlots = ['boots', 'cape'];
+
+  const makeSlot = (slot) => {
     const it = state.player.equipment[slot];
     const slotNode = document.createElement('div');
     const rarityClass = it ? `rarity-${it.rarity}` : '';
     const selectedClass = it && state.selectedItemId === it.id ? 'selected' : '';
     slotNode.className = `equip-slot ${it ? '' : 'empty'} ${rarityClass} ${selectedClass}`;
-    slotNode.style.left = `${(slotPositions[slot] || [50,50])[0]}%`;
-    slotNode.style.top = `${(slotPositions[slot] || [50,50])[1]}%`;
-    slotNode.style.transform = 'translate(-50%,-50%)';
     slotNode.innerHTML = `${it ? iconSvg(it) : `<span class="slot-empty">+</span>`}<span class="slot-label">${slotLabel(slot)}</span>`;
     slotNode.addEventListener('click', () => {
       if (!it) return;
@@ -377,7 +364,27 @@ function renderEquipment() {
       renderInventory();
       renderItemDetails();
     });
-    el.equipment.appendChild(slotNode);
+    return slotNode;
+  };
+
+  const board = document.createElement('div');
+  board.className = 'equip-board';
+  const leftCol = document.createElement('div'); leftCol.className = 'equip-col';
+  const center = document.createElement('div'); center.className = 'equip-center';
+  const rightCol = document.createElement('div'); rightCol.className = 'equip-col';
+  const bottomRow = document.createElement('div'); bottomRow.className = 'equip-bottom';
+
+  leftSlots.forEach((slot) => leftCol.appendChild(makeSlot(slot)));
+  rightSlots.forEach((slot) => rightCol.appendChild(makeSlot(slot)));
+  bottomSlots.forEach((slot) => bottomRow.appendChild(makeSlot(slot)));
+  center.innerHTML = `<div class="paper-doll">Champion</div>`;
+
+  board.append(leftCol, center, rightCol);
+  el.equipment.append(board, bottomRow);
+  SLOT_ORDER.forEach((slot) => {
+    if (![...leftSlots, ...rightSlots, ...bottomSlots].includes(slot)) {
+      el.equipment.appendChild(makeSlot(slot));
+    }
   });
 }
 
