@@ -338,6 +338,32 @@ function bindTabs() {
   }));
 }
 
+function setExploreActions() {
+  el.actions.innerHTML = '';
+  const camp = document.createElement('button');
+  camp.textContent = 'Make Camp';
+  camp.addEventListener('click', () => {
+    state.day += 0.35;
+    state.player.stamina = clamp(state.player.stamina + 14, 0, 100);
+    state.player.focus = clamp(state.player.focus + 10, 0, 100);
+    state.player.fatigue = clamp(state.player.fatigue - 8, 0, 100);
+    addLog('You establish a small campfire and recover composure.');
+    updateHud();
+    renderCharacterScreen();
+  });
+  const forage = document.createElement('button');
+  forage.textContent = 'Forage';
+  forage.addEventListener('click', () => {
+    const biome = biomeAt(state.player.pos.x, state.player.pos.y);
+    const gain = biome === 'swamp' || biome === 'ruin' ? 4 : 7;
+    state.player.hp = clamp(state.player.hp + gain, 0, 140);
+    state.player.stamina = clamp(state.player.stamina - 3, 0, 100);
+    addLog(`You forage in ${biome} terrain and recover ${gain} vitality.`);
+    updateHud();
+  });
+  el.actions.append(camp, forage);
+}
+
 function exportSave() {
   return {
     day: state.day,
@@ -418,7 +444,11 @@ function checkEncounter() {
   const biome = biomeAt(p.x, p.y);
   const travel = biomeTravelProfile(biome);
   const m = state.monsters.find((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= 1);
-  if (!m) { el.encounter.textContent = `Exploring ${MAP_SIZE}x${MAP_SIZE}. Biome: ${biome}. Terrain load ${travel.stamina.toFixed(2)}x.`; return; }
+  if (!m) {
+    el.encounter.textContent = `Exploring ${MAP_SIZE}x${MAP_SIZE}. Biome: ${biome}. Terrain load ${travel.stamina.toFixed(2)}x.`;
+    setExploreActions();
+    return;
+  }
   state.encounter = m;
   state.mode = 'combat';
   el.encounter.textContent = `${m.name} confronts you.`;
@@ -430,7 +460,7 @@ function checkEncounter() {
 
 function combatAction(action) {
   if (!state.encounter) return;
-  if (action === 'withdraw') { state.mode = 'explore'; state.encounter = null; el.actions.innerHTML = ''; return; }
+  if (action === 'withdraw') { state.mode = 'explore'; state.encounter = null; setExploreActions(); return; }
   if (action === 'assess') { el.encounter.textContent = `${state.encounter.name} HP ${Math.max(0, state.encounter.hpNow)} Poise ${Math.max(0, state.encounter.poiseNow)}`; enemyTurn(1); return; }
   if (action === 'guard') { state.player.stamina = clamp(state.player.stamina + 8, 0, 100); enemyTurn(0.6); return; }
   const dmg = totalStat('damage') + state.player.stats.strength * 2 + rand(4, 10);
@@ -442,7 +472,7 @@ function combatAction(action) {
     state.monsters = state.monsters.filter((m) => m.uid !== state.encounter.uid);
     state.encounter = null;
     state.mode = 'explore';
-    el.actions.innerHTML = '';
+    setExploreActions();
   }
 }
 
@@ -500,6 +530,7 @@ function init() {
   renderMapChunk();
   bindJoystick();
   bindTabs();
+  setExploreActions();
   el.saveBtn.addEventListener('click', saveGame);
   el.loadBtn.addEventListener('click', loadGame);
   const autoSaveRaw = localStorage.getItem(SAVE_KEY);
