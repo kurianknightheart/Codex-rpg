@@ -56,8 +56,26 @@ body { margin: 0; color: var(--text); background: radial-gradient(circle at top,
   pointer-events:none;
   z-index:0;
 }
-.tile { position: absolute; width: 76px; height: 38px; transform: rotate(45deg) skew(-12deg,-12deg); border: 1px solid rgba(0,0,0,.45); opacity: .88; z-index: 1; }
-.tile.grass{background:#3c5237}.tile.road{background:#64584a}.tile.water{background:#2f4d63}.tile.swamp{background:#3f4b39}.tile.frost{background:#6f7788}.tile.desert{background:#7d6848}.tile.ruin{background:#493b45}.tile.forest{background:#2f472f}.tile.hills{background:#5b6254}.tile.ash{background:#4f4a54}.tile.moor{background:#50513c}
+.patch{
+  position:absolute;
+  transform:translate(-50%,-50%);
+  border-radius:999px;
+  opacity:.86;
+  z-index:1;
+  filter:blur(1px) saturate(1.08);
+  box-shadow:inset 0 -8px 12px rgba(0,0,0,.22), 0 0 10px rgba(0,0,0,.15);
+}
+.patch.grass{background:radial-gradient(circle at 35% 35%, #4f7a47, #2f4f33 70%)}
+.patch.road{background:radial-gradient(circle at 35% 35%, #7a6b58, #4d4034 70%)}
+.patch.water{background:radial-gradient(circle at 40% 35%, #5d86a1, #2e4f66 72%)}
+.patch.swamp{background:radial-gradient(circle at 40% 40%, #5f7250, #344133 75%)}
+.patch.frost{background:radial-gradient(circle at 35% 35%, #a6b7c8, #697789 74%)}
+.patch.desert{background:radial-gradient(circle at 35% 35%, #96784f, #6d5838 74%)}
+.patch.ruin{background:radial-gradient(circle at 40% 40%, #6a5666, #463848 72%)}
+.patch.forest{background:radial-gradient(circle at 35% 35%, #3f6b40, #203625 72%)}
+.patch.hills{background:radial-gradient(circle at 35% 35%, #73806a, #4c5647 72%)}
+.patch.ash{background:radial-gradient(circle at 35% 35%, #7a7481, #4c4952 73%)}
+.patch.moor{background:radial-gradient(circle at 35% 35%, #6e7150, #44462f 72%)}
 .monster { position: absolute; width: 46px; height: 46px; transform: translate(-50%,-50%); z-index: 4; animation: bob .9s ease-in-out infinite alternate; pointer-events:none; }
 .monster svg{width:100%;height:100%}
 .deco { position: absolute; z-index: 2; transform: translate(-50%,-50%); opacity: .9; pointer-events:none; }
@@ -69,6 +87,8 @@ body { margin: 0; color: var(--text); background: radial-gradient(circle at top,
 .deco.pine { width: 18px; height: 28px; background: linear-gradient(#3d5d3e,#223224); clip-path: polygon(50% 0,100% 100%,0 100%); }
 .deco.ash { width: 16px; height: 14px; background: #7f7884; border-radius: 50%; }
 .deco.heather { width: 14px; height: 10px; background: #8b678e; border-radius: 10px; }
+.deco.lake { width: 42px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #79b2d6, #2f5f82); box-shadow: inset 0 -3px 4px rgba(0,0,0,.25), 0 0 8px rgba(78,140,179,.55); opacity:.85; }
+.deco.mountain { width: 30px; height: 24px; background: linear-gradient(145deg, #7f817f, #494c52); clip-path: polygon(50% 0, 100% 100%, 0 100%); box-shadow: -8px 2px 0 rgba(100,104,112,.65), 8px 2px 0 rgba(70,74,82,.75); }
 .player { position: absolute; width: 82px; height: 106px; transform: translate(-50%,-74%); z-index: 10; pointer-events: none; display:block; }
 .player svg{width:100%;height:100%;filter:drop-shadow(0 4px 5px rgba(0,0,0,.5));shape-rendering:geometricPrecision}
 .player.walk{animation:walk .24s linear infinite}

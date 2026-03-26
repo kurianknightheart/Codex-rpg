@@ -1,4 +1,4 @@
-const MAP_SIZE = 256;
+const MAP_SIZE = 1024;
 const VIEW_RADIUS = 11;
 const SLOT_ORDER = ['weapon', 'helmet', 'chestArmor', 'armor', 'offhand', 'belt', 'leggings', 'boots', 'gloves', 'necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'];
 const DEFENSE_SLOTS = ['helmet', 'chestArmor', 'armor', 'offhand', 'belt', 'leggings', 'boots', 'gloves'];
@@ -25,7 +25,7 @@ const state = {
   stepMs: 75,
   lastStep: 0,
   player: {
-    pos: { x: 128, y: 128 },
+    pos: { x: 512, y: 512 },
     hp: 120,
     stamina: 100,
     focus: 70,
@@ -173,24 +173,24 @@ function decoSeed(x, y) {
 }
 
 function renderMapChunk() {
-  el.world.querySelectorAll('.tile,.monster,.deco').forEach((n) => n.remove());
+  el.world.querySelectorAll('.patch,.monster,.deco').forEach((n) => n.remove());
   const { x: px, y: py } = state.player.pos;
   const fragment = document.createDocumentFragment();
   for (let y = py - VIEW_RADIUS; y <= py + VIEW_RADIUS; y += 1) {
     for (let x = px - VIEW_RADIUS; x <= px + VIEW_RADIUS; x += 1) {
       if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE) continue;
-      const tile = document.createElement('div');
       const biome = biomeAt(x, y);
-      tile.className = `tile ${biome}`;
-      tile.dataset.x = String(x);
-      tile.dataset.y = String(y);
       const p = iso(x - px + VIEW_RADIUS, y - py + VIEW_RADIUS);
-      tile.style.left = `${p.x}px`;
-      tile.style.top = `${p.y}px`;
-      fragment.appendChild(tile);
-      if (decoSeed(x, y) < 0.22) {
+      const patch = document.createElement('div');
+      patch.className = `patch ${biome}`;
+      patch.style.left = `${p.x + 38 + (decoSeed(x, y) - 0.5) * 16}px`;
+      patch.style.top = `${p.y + 20 + (decoSeed(y, x) - 0.5) * 12}px`;
+      patch.style.width = `${52 + Math.floor(decoSeed(x + 3, y + 5) * 38)}px`;
+      patch.style.height = `${28 + Math.floor(decoSeed(x + 8, y + 2) * 22)}px`;
+      fragment.appendChild(patch);
+      if (decoSeed(x, y) < 0.34) {
         const deco = document.createElement('div');
-        deco.className = `deco ${decoForBiome(biome)}`;
+        deco.className = `deco ${featureForTile(x, y, biome)}`;
         deco.style.left = `${p.x + 34}px`;
         deco.style.top = `${p.y + 8}px`;
         fragment.appendChild(deco);
@@ -214,6 +214,13 @@ function decoForBiome(biome) {
   if (biome === 'ruin') return 'ruin';
   if (biome === 'ash') return 'ash';
   return 'stone';
+}
+
+function featureForTile(x, y, biome) {
+  const seed = decoSeed(x * 3 + 7, y * 5 + 11);
+  if (seed > 0.94 && biome !== 'water') return 'lake';
+  if (seed > 0.8) return 'mountain';
+  return decoForBiome(biome);
 }
 
 function renderPlayer() {
@@ -518,7 +525,7 @@ function applySaveData(data) {
   state.day = data.day ?? 1;
   state.mode = data.mode ?? 'explore';
   const basePlayer = {
-    pos: { x: 128, y: 128 },
+    pos: { x: 512, y: 512 },
     hp: 120,
     stamina: 100,
     focus: 70,
