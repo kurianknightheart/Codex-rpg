@@ -553,13 +553,27 @@ function drawMonsters() {
 }
 
 function bindTabs() {
-  document.querySelectorAll('.nav-btn').forEach((btn) => btn.addEventListener('click', () => {
+  document.querySelectorAll('.nav-btn').forEach((btn) => bindTapAction(btn, () => {
     document.querySelectorAll('.nav-btn').forEach((b) => b.classList.remove('active'));
     document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById(`screen-${btn.dataset.screen}`).classList.add('active');
     if (btn.dataset.screen === 'character') renderCharacterScreen();
   }));
+}
+
+function bindTapAction(node, handler) {
+  if (!node) return;
+  let gate = false;
+  const run = (ev) => {
+    ev.preventDefault?.();
+    if (gate) return;
+    gate = true;
+    handler(ev);
+    setTimeout(() => { gate = false; }, 220);
+  };
+  node.addEventListener('pointerup', run);
+  node.addEventListener('click', run);
 }
 
 function bindMapTap() {
@@ -913,9 +927,9 @@ function init() {
       renderInventory();
     });
   }
-  el.saveBtn.addEventListener('click', saveGame);
-  el.loadBtn.addEventListener('click', loadGame);
-  if (el.newGameBtn) el.newGameBtn.addEventListener('click', startNewGame);
+  bindTapAction(el.saveBtn, saveGame);
+  bindTapAction(el.loadBtn, loadGame);
+  bindTapAction(el.newGameBtn, startNewGame);
   const autoSaveRaw = localStorage.getItem(SAVE_KEY);
   if (autoSaveRaw) {
     try {
