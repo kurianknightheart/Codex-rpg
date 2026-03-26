@@ -12,6 +12,8 @@ const state = {
     hp: 120,
     stamina: 100,
     focus: 70,
+    fatigue: 0,
+    bodyTemp: 36.8,
     stats: { strength: 7, dexterity: 7, intelligence: 6, endurance: 8, willpower: 6 },
     xp: {},
     equipment: {},
@@ -92,6 +94,19 @@ function biomeAt(x, y) {
   if (n > -0.8) return 'ruin';
   if (n > -1.3) return 'desert';
   return 'water';
+}
+
+function biomeTravelProfile(biome) {
+  const table = {
+    road: { stamina: 0.7, fatigue: 0.35, temp: 0.0, danger: 0.85 },
+    grass: { stamina: 1.0, fatigue: 0.55, temp: 0.0, danger: 1.0 },
+    swamp: { stamina: 1.45, fatigue: 0.9, temp: -0.08, danger: 1.35 },
+    frost: { stamina: 1.25, fatigue: 0.75, temp: -0.14, danger: 1.25 },
+    desert: { stamina: 1.3, fatigue: 0.8, temp: 0.12, danger: 1.2 },
+    ruin: { stamina: 1.15, fatigue: 0.7, temp: -0.03, danger: 1.4 },
+    water: { stamina: 1.7, fatigue: 1.05, temp: -0.11, danger: 1.6 },
+  };
+  return table[biome] || table.grass;
 }
 
 function decoSeed(x, y) {
@@ -222,7 +237,7 @@ function calculationSnapshot() {
   const defense = totalStat('defense');
   const hp = state.player.hp + totalStat('hpIncrease');
   const evasion = (derivedAttr('dexterity') * 0.5 + totalStat('evasion')).toFixed(1);
-  return { damage, crit, defense, hp, evasion };
+  return { damage, crit, defense, hp, evasion, fatigue: state.player.fatigue.toFixed(1), bodyTemp: state.player.bodyTemp.toFixed(1) };
 }
 
 function updateHud() {
@@ -232,7 +247,7 @@ function updateHud() {
   });
   el.resourceBars.innerHTML = '';
   const calc = calculationSnapshot();
-  [['HP', calc.hp], ['STM', state.player.stamina], ['FOC', state.player.focus], ['DEF', calc.defense], ['DMG', calc.damage]].forEach(([k, v]) => {
+  [['HP', calc.hp], ['STM', state.player.stamina], ['FOC', state.player.focus], ['DEF', calc.defense], ['FTG', calc.fatigue]].forEach(([k, v]) => {
     const d = document.createElement('div'); d.className = 'pill'; d.textContent = `${k} ${Math.round(v)}`; el.resourceBars.appendChild(d);
   });
 }
@@ -252,6 +267,8 @@ function renderCharacterScreen() {
     <p><strong>Defense:</strong> ${calc.defense} <span class='formula'>Sum of gear defense values.</span></p>
     <p><strong>Evasion Rating:</strong> ${calc.evasion}% <span class='formula'>(Dexterity ${derivedAttr('dexterity')} × 0.5) + Gear Evasion ${totalStat('evasion')}</span></p>
     <p><strong>Effective HP:</strong> ${calc.hp} <span class='formula'>Current HP ${state.player.hp} + HP bonus ${totalStat('hpIncrease')}</span></p>
+    <p><strong>Fatigue:</strong> ${calc.fatigue} <span class='formula'>Increases with difficult terrain; higher fatigue lowers sustained combat performance.</span></p>
+    <p><strong>Body Temperature:</strong> ${calc.bodyTemp}°C <span class='formula'>Biome climate shifts temperature; extreme cold/heat increases survival risk.</span></p>
   `;
 }
 
@@ -382,7 +399,11 @@ function moveStep(ts) {
   if (!dx && !dy) return;
   state.player.pos.x = clamp(state.player.pos.x + dx, 0, MAP_SIZE - 1);
   state.player.pos.y = clamp(state.player.pos.y + dy, 0, MAP_SIZE - 1);
-  state.player.stamina = clamp(state.player.stamina - 1, 0, 100);
+  const biome = biomeAt(state.player.pos.x, state.player.pos.y);
+  const travel = biomeTravelProfile(biome);
+  state.player.stamina = clamp(state.player.stamina - travel.stamina, 0, 100);
+  state.player.fatigue = clamp(state.player.fatigue + travel.fatigue * 0.08, 0, 100);
+  state.player.bodyTemp = clamp(state.player.bodyTemp + travel.temp * 0.08, 34.0, 39.5);
   state.day += 0.03;
   el.player.classList.add('walk');
   setTimeout(() => el.player.classList.remove('walk'), 150);
@@ -394,8 +415,10 @@ function moveStep(ts) {
 
 function checkEncounter() {
   const p = state.player.pos;
+  const biome = biomeAt(p.x, p.y);
+  const travel = biomeTravelProfile(biome);
   const m = state.monsters.find((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= 1);
-  if (!m) { el.encounter.textContent = `Exploring ${MAP_SIZE}x${MAP_SIZE} world. Biome: ${biomeAt(p.x, p.y)}.`; return; }
+  if (!m) { el.encounter.textContent = `Exploring ${MAP_SIZE}x${MAP_SIZE}. Biome: ${biome}. Terrain load ${travel.stamina.toFixed(2)}x.`; return; }
   state.encounter = m;
   state.mode = 'combat';
   el.encounter.textContent = `${m.name} confronts you.`;
@@ -425,7 +448,8 @@ function combatAction(action) {
 
 function enemyTurn(mult) {
   if (!state.encounter) return;
-  const hit = Math.max(1, Math.floor((state.encounter.attack + rand(0, 7)) * mult - totalStat('defense') * 0.35));
+  const fatiguePenalty = 1 + state.player.fatigue / 220;
+  const hit = Math.max(1, Math.floor((state.encounter.attack + rand(0, 7)) * mult * fatiguePenalty - totalStat('defense') * 0.35));
   state.player.hp -= hit;
   if (state.player.hp <= 0) { addLog('You fell in battle. Refresh to restart.'); }
   updateHud();
@@ -454,7 +478,12 @@ function bindJoystick() {
   window.addEventListener('mouseup', end);
 }
 
-function gameLoop(ts = 0) { moveStep(ts); requestAnimationFrame(gameLoop); }
+function gameLoop(ts = 0) {
+  moveStep(ts);
+  const daylight = 0.72 + Math.sin(state.day * 0.24) * 0.18;
+  el.world.style.filter = `brightness(${daylight.toFixed(2)}) saturate(1.05)`;
+  requestAnimationFrame(gameLoop);
+}
 
 function initStarterEquip() { SLOT_ORDER.forEach((s) => { const i = state.player.inventory.find((x) => x.slot === s); if (i) state.player.equipment[s] = i; }); }
 
