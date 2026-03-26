@@ -3,52 +3,58 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Ashen Marches — Knight of the Mire</title>
+  <title>Ashen Marches</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
   <main class="app">
     <header class="hud">
-      <div class="title-block">
-        <h1>Ashen Marches</h1>
-        <p>Young Knight Expedition</p>
-      </div>
-      <div class="hud__stats" id="coreStats"></div>
-      <div class="hud__resources" id="resourceBars"></div>
+      <h1>Ashen Marches</h1>
+      <div id="coreStats" class="hud-grid"></div>
+      <div id="resourceBars" class="hud-grid"></div>
     </header>
 
-    <section class="main-grid">
+    <section id="screen-map" class="screen active">
       <div class="world" id="world">
-        <div class="player" id="player" aria-label="young knight"></div>
+        <div class="player" id="player"></div>
       </div>
+      <div class="controls-row">
+        <div class="joystick" id="joystick">
+          <div class="joystick-base"></div>
+          <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
+        <div id="encounterPanel" class="encounter"></div>
+      </div>
+      <div class="actions" id="actions"></div>
+    </section>
 
-      <aside class="panel">
-        <h2 id="panelTitle">Field Notes</h2>
-        <p id="panelText">Tap stat pills to learn what each attribute changes.</p>
+    <section id="screen-character" class="screen">
+      <div class="character-card">
+        <div id="characterPreview" class="character-preview"></div>
+        <div id="characterDetails" class="character-details"></div>
+      </div>
+    </section>
 
-        <section class="equipment">
-          <h3>Equipped</h3>
+    <section id="screen-inventory" class="screen">
+      <div class="inv-layout">
+        <div>
+          <h3>Equipment</h3>
           <div id="equipmentSlots" class="equipment-slots"></div>
-        </section>
-
-        <section class="inventory-section">
+        </div>
+        <div>
           <h3>Inventory</h3>
           <div id="inventory" class="inventory"></div>
-        </section>
-
-        <section class="actions" id="actions"></section>
-      </aside>
-    </section>
-
-    <section class="controls">
-      <div class="joystick" id="joystick">
-        <div class="joystick-base"></div>
-        <div class="joystick-knob" id="joystickKnob"></div>
+        </div>
       </div>
-      <div class="encounter" id="encounterPanel">No immediate threats.</div>
     </section>
 
-    <footer class="log" id="log" aria-live="polite"></footer>
+    <footer class="bottom-nav">
+      <button data-screen="map" class="nav-btn active">Map</button>
+      <button data-screen="character" class="nav-btn">Character</button>
+      <button data-screen="inventory" class="nav-btn">Inventory</button>
+    </footer>
+
+    <footer id="log" class="log"></footer>
   </main>
 
   <script src="game.js"></script>
