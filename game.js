@@ -38,11 +38,14 @@ const el = {
   characterDetails: document.getElementById('characterDetails'),
   joystick: document.getElementById('joystick'),
   knob: document.getElementById('joystickKnob'),
+  saveBtn: document.getElementById('saveBtn'),
+  loadBtn: document.getElementById('loadBtn'),
 };
 
 function addLog(t) { const p = document.createElement('p'); p.textContent = `[Day ${Math.floor(state.day)}] ${t}`; el.log.prepend(p); }
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const SAVE_KEY = 'ashen_marches_save_v1';
 
 function knightSvg(weaponHue = 24, armorHue = 220, trimHue = 45) {
   return `<svg viewBox='0 0 120 160' xmlns='http://www.w3.org/2000/svg'>
@@ -281,6 +284,59 @@ function bindTabs() {
   }));
 }
 
+function exportSave() {
+  return {
+    day: state.day,
+    mode: state.mode,
+    player: state.player,
+    monsters: state.monsters,
+    encounter: state.encounter,
+  };
+}
+
+function applySaveData(data) {
+  if (!data || !data.player) return false;
+  state.day = data.day ?? 1;
+  state.mode = data.mode ?? 'explore';
+  state.player = data.player;
+  state.monsters = Array.isArray(data.monsters) ? data.monsters : [];
+  state.encounter = data.encounter ?? null;
+  return true;
+}
+
+function saveGame() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(exportSave()));
+    addLog('Game saved to local storage.');
+  } catch (err) {
+    addLog('Save failed (storage unavailable).');
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) {
+      addLog('No save found.');
+      return;
+    }
+    const data = JSON.parse(raw);
+    if (!applySaveData(data)) {
+      addLog('Save file was invalid.');
+      return;
+    }
+    applyKnight();
+    renderEquipment();
+    renderInventory();
+    renderCharacterScreen();
+    updateHud();
+    renderMapChunk();
+    addLog('Save loaded.');
+  } catch (err) {
+    addLog('Load failed (corrupt save).');
+  }
+}
+
 function moveStep(ts) {
   if (!state.joystick.active || state.mode !== 'explore') return;
   if (ts - state.lastStep < state.stepMs) return;
@@ -378,6 +434,25 @@ function init() {
   renderMapChunk();
   bindJoystick();
   bindTabs();
+  el.saveBtn.addEventListener('click', saveGame);
+  el.loadBtn.addEventListener('click', loadGame);
+  const autoSaveRaw = localStorage.getItem(SAVE_KEY);
+  if (autoSaveRaw) {
+    try {
+      const parsed = JSON.parse(autoSaveRaw);
+      if (applySaveData(parsed)) {
+        addLog('Autosave restored.');
+        applyKnight();
+        renderEquipment();
+        renderInventory();
+        renderCharacterScreen();
+        updateHud();
+        renderMapChunk();
+      }
+    } catch (_) {
+      addLog('Autosave could not be restored.');
+    }
+  }
   addLog(`Loaded world ${MAP_SIZE}x${MAP_SIZE}, ${state.player.inventory.length} items, ${state.bestiary.length} monster types.`);
   gameLoop();
 }
