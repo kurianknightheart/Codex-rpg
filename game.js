@@ -38,6 +38,7 @@ const el = {
   log: document.getElementById('log'),
   characterPreview: document.getElementById('characterPreview'),
   characterDetails: document.getElementById('characterDetails'),
+  bottomNav: document.getElementById('bottomNav'),
   saveBtn: document.getElementById('saveBtn'),
   loadBtn: document.getElementById('loadBtn'),
 };
@@ -134,10 +135,6 @@ function renderMapChunk() {
       const p = iso(x - px + VIEW_RADIUS, y - py + VIEW_RADIUS);
       tile.style.left = `${p.x}px`;
       tile.style.top = `${p.y}px`;
-      tile.addEventListener('click', () => {
-        state.destination = { x, y };
-        el.encounter.textContent = `Travelling to (${x}, ${y}) through ${biome}.`;
-      });
       fragment.appendChild(tile);
       if (decoSeed(x, y) < 0.22) {
         const deco = document.createElement('div');
@@ -175,10 +172,21 @@ function renderPlayer() {
 }
 
 function iconSvg(item) {
+  const seed = Number(item.id.replace('it-', '')) || 1;
   const h = item.appearance.hue;
-  if (item.slot === 'weapon') return `<svg viewBox='0 0 40 40'><rect x='18' y='4' width='4' height='24' rx='2' fill='hsl(${h} 60% 64%)'/><rect x='12' y='23' width='16' height='3' rx='2' fill='hsl(${h} 40% 30%)'/></svg>`;
-  if (['armor','helmet','offhand','belt','leggings','boots','gloves'].includes(item.slot)) return `<svg viewBox='0 0 40 40'><rect x='8' y='8' width='24' height='24' rx='8' fill='hsl(${h} 34% 45%)'/></svg>`;
-  return `<svg viewBox='0 0 40 40'><circle cx='20' cy='20' r='10' fill='hsl(${h} 65% 58%)'/></svg>`;
+  const v1 = 6 + (seed % 10);
+  const v2 = 8 + (seed % 12);
+  const sigil = (seed % 4);
+  if (item.slot === 'weapon') {
+    return `<svg viewBox='0 0 40 40'><rect x='${18 + (seed % 2)}' y='${4 + (seed % 3)}' width='4' height='${20 + (seed % 6)}' rx='2' fill='hsl(${h} 60% 64%)'/><rect x='${12 + (seed % 3)}' y='23' width='16' height='3' rx='2' fill='hsl(${h} 40% 30%)'/><circle cx='20' cy='${30 + (seed % 6)}' r='${2 + (seed % 2)}' fill='hsl(${(h + 40) % 360} 70% 60%)'/></svg>`;
+  }
+  if (['armor','helmet','offhand','belt','leggings','boots','gloves'].includes(item.slot)) {
+    return `<svg viewBox='0 0 40 40'><rect x='8' y='8' width='24' height='24' rx='${v1}' fill='hsl(${h} 34% 45%)'/><path d='M12 ${v2} L28 ${40 - v2}' stroke='hsl(${(h + 60) % 360} 50% 65%)' stroke-width='2'/></svg>`;
+  }
+  if (sigil === 0) return `<svg viewBox='0 0 40 40'><circle cx='20' cy='20' r='10' fill='hsl(${h} 65% 58%)'/><path d='M15 20 L25 20 M20 15 L20 25' stroke='hsl(${(h+120)%360} 75% 70%)' stroke-width='2'/></svg>`;
+  if (sigil === 1) return `<svg viewBox='0 0 40 40'><polygon points='20,9 30,20 20,31 10,20' fill='hsl(${h} 65% 58%)'/><circle cx='20' cy='20' r='3' fill='hsl(${(h+100)%360} 70% 70%)'/></svg>`;
+  if (sigil === 2) return `<svg viewBox='0 0 40 40'><rect x='11' y='11' width='18' height='18' rx='6' fill='hsl(${h} 65% 58%)'/><path d='M14 26 L26 14' stroke='hsl(${(h+80)%360} 70% 72%)' stroke-width='2'/></svg>`;
+  return `<svg viewBox='0 0 40 40'><circle cx='20' cy='20' r='10' fill='hsl(${h} 65% 58%)'/><path d='M14 24 Q20 12 26 24' stroke='hsl(${(h+140)%360} 70% 72%)' stroke-width='2' fill='none'/></svg>`;
 }
 
 function itemDesc(slot, s) {
@@ -346,13 +354,28 @@ function drawMonsters() {
 }
 
 function bindTabs() {
-  document.querySelectorAll('.nav-btn').forEach((btn) => btn.addEventListener('click', () => {
+  el.bottomNav.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('.nav-btn');
+    if (!btn) return;
     document.querySelectorAll('.nav-btn').forEach((b) => b.classList.remove('active'));
     document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById(`screen-${btn.dataset.screen}`).classList.add('active');
+    const target = document.getElementById(`screen-${btn.dataset.screen}`);
+    if (target) target.classList.add('active');
     if (btn.dataset.screen === 'character') renderCharacterScreen();
-  }));
+  });
+}
+
+function bindMapInteraction() {
+  el.world.addEventListener('click', (ev) => {
+    const tile = ev.target.closest('.tile');
+    if (!tile || state.mode !== 'explore') return;
+    const x = Number(tile.dataset.x);
+    const y = Number(tile.dataset.y);
+    if (Number.isNaN(x) || Number.isNaN(y)) return;
+    state.destination = { x, y };
+    el.encounter.textContent = `Travelling to (${x}, ${y}) through ${biomeAt(x, y)}.`;
+  });
 }
 
 function setExploreActions() {
@@ -548,6 +571,7 @@ function init() {
   updateHud();
   renderMapChunk();
   bindTabs();
+  bindMapInteraction();
   setExploreActions();
   el.saveBtn.addEventListener('click', saveGame);
   el.loadBtn.addEventListener('click', loadGame);
