@@ -381,11 +381,6 @@ function renderEquipment() {
 
   board.append(leftCol, center, rightCol);
   el.equipment.append(board, bottomRow);
-  SLOT_ORDER.forEach((slot) => {
-    if (![...leftSlots, ...rightSlots, ...bottomSlots].includes(slot)) {
-      el.equipment.appendChild(makeSlot(slot));
-    }
-  });
 }
 
 function renderInventory() {
