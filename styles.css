@@ -30,7 +30,7 @@ body { margin: 0; color: var(--text); background: radial-gradient(circle at top,
   z-index:0;
 }
 .tile { position: absolute; width: 76px; height: 38px; transform: rotate(45deg) skew(-12deg,-12deg); border: 1px solid rgba(0,0,0,.45); opacity: .88; z-index: 1; }
-.tile.grass{background:#3c5237}.tile.road{background:#64584a}.tile.water{background:#2f4d63}.tile.swamp{background:#3f4b39}.tile.frost{background:#6f7788}.tile.desert{background:#7d6848}.tile.ruin{background:#493b45}
+.tile.grass{background:#3c5237}.tile.road{background:#64584a}.tile.water{background:#2f4d63}.tile.swamp{background:#3f4b39}.tile.frost{background:#6f7788}.tile.desert{background:#7d6848}.tile.ruin{background:#493b45}.tile.forest{background:#2f472f}.tile.hills{background:#5b6254}.tile.ash{background:#4f4a54}.tile.moor{background:#50513c}
 .monster { position: absolute; width: 46px; height: 46px; transform: translate(-50%,-50%); z-index: 4; animation: bob .9s ease-in-out infinite alternate; }
 .monster svg{width:100%;height:100%}
 .deco { position: absolute; z-index: 2; transform: translate(-50%,-50%); opacity: .9; }
@@ -39,14 +39,16 @@ body { margin: 0; color: var(--text); background: radial-gradient(circle at top,
 .deco.stone { width: 14px; height: 12px; background: #6f6a63; border-radius: 7px; }
 .deco.frostshrub { width: 18px; height: 14px; background: linear-gradient(#b8c4d3,#8997aa); border-radius: 8px; }
 .deco.ruin { width: 14px; height: 20px; background: #6a5a64; border-radius: 3px; box-shadow: 8px -3px 0 #5a4b56; }
+.deco.pine { width: 18px; height: 28px; background: linear-gradient(#3d5d3e,#223224); clip-path: polygon(50% 0,100% 100%,0 100%); }
+.deco.ash { width: 16px; height: 14px; background: #7f7884; border-radius: 50%; }
+.deco.heather { width: 14px; height: 10px; background: #8b678e; border-radius: 10px; }
 .player { position: absolute; width: 82px; height: 106px; transform: translate(-50%,-74%); z-index: 10; pointer-events: none; display:block; }
 .player svg{width:100%;height:100%;filter:drop-shadow(0 4px 5px rgba(0,0,0,.5));shape-rendering:geometricPrecision}
 .player.walk{animation:walk .2s ease-in-out infinite alternate}
 @keyframes walk{from{transform:translate(-50%,-74%) rotate(-1deg)}to{transform:translate(-50%,-70%) rotate(1deg)}}
 @keyframes bob{from{transform:translate(-50%,-52%)}to{transform:translate(-50%,-48%)}}
 .controls-row{margin-top:.45rem;display:flex;gap:.6rem;align-items:center}
-.joystick{width:124px;height:124px;position:relative}.joystick-base{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 30% 30%,#4f3d63,#241b2f);border:2px solid #72598b}.joystick-knob{position:absolute;width:48px;height:48px;left:38px;top:38px;border-radius:50%;background:radial-gradient(circle at 30% 30%,#e2c69b,#8b6f4d);border:2px solid #553f27}
-.encounter{flex:1;font-size:.8rem;color:var(--muted)}
+.encounter{width:100%;font-size:.82rem;color:var(--muted);padding:.5rem;border:1px solid #4b3b5d;border-radius:9px;background:#21182b}
 .actions{margin-top:.45rem;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem}
 button{border:1px solid #8a6aac;background:linear-gradient(180deg,#4b3561,#2d203d);color:var(--text);border-radius:9px;padding:.5rem .42rem;font-size:.76rem;min-height:42px}
 button:hover{filter:brightness(1.08)}

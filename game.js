@@ -19,7 +19,7 @@ const state = {
     equipment: {},
     inventory: [],
   },
-  joystick: { active: false, dx: 0, dy: 0 },
+  destination: null,
   itemPool: [],
   bestiary: [],
   monsters: [],
@@ -38,8 +38,6 @@ const el = {
   log: document.getElementById('log'),
   characterPreview: document.getElementById('characterPreview'),
   characterDetails: document.getElementById('characterDetails'),
-  joystick: document.getElementById('joystick'),
-  knob: document.getElementById('joystickKnob'),
   saveBtn: document.getElementById('saveBtn'),
   loadBtn: document.getElementById('loadBtn'),
 };
@@ -86,24 +84,31 @@ function iso(x, y) {
 }
 
 function biomeAt(x, y) {
-  const n = Math.sin(x * 0.045) + Math.cos(y * 0.038) + Math.sin((x + y) * 0.02);
-  if (n > 1.5) return 'frost';
-  if (n > 0.9) return 'grass';
-  if (n > 0.3) return 'road';
-  if (n > -0.2) return 'swamp';
-  if (n > -0.8) return 'ruin';
-  if (n > -1.3) return 'desert';
+  const n = Math.sin(x * 0.045) + Math.cos(y * 0.038) + Math.sin((x + y) * 0.02) + Math.cos((x - y) * 0.015);
+  if (n > 1.7) return 'frost';
+  if (n > 1.25) return 'forest';
+  if (n > 0.8) return 'grass';
+  if (n > 0.35) return 'hills';
+  if (n > 0.1) return 'road';
+  if (n > -0.25) return 'moor';
+  if (n > -0.7) return 'swamp';
+  if (n > -1.1) return 'ruin';
+  if (n > -1.45) return 'ash';
   return 'water';
 }
 
 function biomeTravelProfile(biome) {
   const table = {
     road: { stamina: 0.7, fatigue: 0.35, temp: 0.0, danger: 0.85 },
+    forest: { stamina: 1.15, fatigue: 0.7, temp: -0.02, danger: 1.1 },
+    hills: { stamina: 1.2, fatigue: 0.78, temp: -0.01, danger: 1.1 },
+    moor: { stamina: 1.12, fatigue: 0.72, temp: -0.04, danger: 1.15 },
     grass: { stamina: 1.0, fatigue: 0.55, temp: 0.0, danger: 1.0 },
     swamp: { stamina: 1.45, fatigue: 0.9, temp: -0.08, danger: 1.35 },
     frost: { stamina: 1.25, fatigue: 0.75, temp: -0.14, danger: 1.25 },
     desert: { stamina: 1.3, fatigue: 0.8, temp: 0.12, danger: 1.2 },
     ruin: { stamina: 1.15, fatigue: 0.7, temp: -0.03, danger: 1.4 },
+    ash: { stamina: 1.35, fatigue: 0.82, temp: 0.05, danger: 1.5 },
     water: { stamina: 1.7, fatigue: 1.05, temp: -0.11, danger: 1.6 },
   };
   return table[biome] || table.grass;
@@ -124,9 +129,15 @@ function renderMapChunk() {
       const tile = document.createElement('div');
       const biome = biomeAt(x, y);
       tile.className = `tile ${biome}`;
+      tile.dataset.x = String(x);
+      tile.dataset.y = String(y);
       const p = iso(x - px + VIEW_RADIUS, y - py + VIEW_RADIUS);
       tile.style.left = `${p.x}px`;
       tile.style.top = `${p.y}px`;
+      tile.addEventListener('click', () => {
+        state.destination = { x, y };
+        el.encounter.textContent = `Travelling to (${x}, ${y}) through ${biome}.`;
+      });
       fragment.appendChild(tile);
       if (decoSeed(x, y) < 0.22) {
         const deco = document.createElement('div');
@@ -145,10 +156,14 @@ function renderMapChunk() {
 
 function decoForBiome(biome) {
   if (biome === 'grass') return 'tree';
+  if (biome === 'forest') return 'pine';
+  if (biome === 'hills') return 'stone';
+  if (biome === 'moor') return 'heather';
   if (biome === 'swamp') return 'reed';
   if (biome === 'desert') return 'stone';
   if (biome === 'frost') return 'frostshrub';
   if (biome === 'ruin') return 'ruin';
+  if (biome === 'ash') return 'ash';
   return 'stone';
 }
 
@@ -183,16 +198,18 @@ function generateItems() {
     ring2:['Copper Ring','Pilgrim Ring','Moon Ring','Iron Ring','Dust Band'], trinket1:['Saint Token','Witch Knot','Bone Dice','War Medal','Fog Charm'],
     trinket2:['Tooth Charm','Prayer Bead','Coin Relic','Rune Pebble','Crow Feather'],
   };
-  const rar = ['common','sturdy','rare','ancient'];
+  const rar = ['common','rare','magical','legendary'];
   let id = 0;
   SLOT_ORDER.forEach((slot, si) => {
     for (let i = 0; i < 16; i += 1) {
-      const p = 1 + Math.floor(i / 4) + (i % 4);
+      const tier = 1 + Math.floor(i / 4);
+      const p = tier + (i % 3);
       const s = {strength:0,intelligence:0,willpower:0,damage:0,attackSpeed:0,crit:0,reach:0,stunChance:0,defense:0,hpIncrease:0,evasion:0};
       if (slot === 'weapon') { s.damage = 8 + p * 3; s.attackSpeed = +(0.8 + p * 0.05).toFixed(2); s.crit = 3 + p * 2; s.reach = 1 + Math.floor(p/2); s.stunChance = 2 + p; s.strength = Math.floor(p/2); }
       else if (['armor','helmet','offhand','belt','leggings','boots','gloves'].includes(slot)) { s.defense = 4 + p * 2; s.hpIncrease = 10 + p * 5; s.evasion = Math.max(1, 10 - p); }
       else { s.strength = slot.includes('ring') ? 1 : 0; s.intelligence = Math.floor(p/2); s.willpower = Math.ceil(p/2); s.crit = p; }
-      state.itemPool.push({ id:`it-${++id}`, slot, rarity:rar[i%4], tier:1+Math.floor(i/4), name:`${rar[i%4].toUpperCase()} ${names[slot][i%5]} ${1+Math.floor(i/4)}`, stats:s, appearance:{hue:(si*27+i*9)%360} });
+      const rarity = rar[Math.min(3, tier - 1)];
+      state.itemPool.push({ id:`it-${++id}`, slot, rarity, tier, name:`${rarity.toUpperCase()} ${names[slot][i%5]} ${tier}`, stats:s, appearance:{hue:(si*27+i*9)%360} });
     }
   });
   state.itemPool = state.itemPool.slice(0, 200);
@@ -274,7 +291,7 @@ function renderCharacterScreen() {
 
 function generateBestiary() {
   const names = ['Bog Ghoul','Fen Raider','Crypt Hound','Ash Spider','Hollow Monk','Rook Bandit','Rot Boar','Cairn Witch','Mire Stalker','Grave Crow','Warden Shade','Pike Marauder','Blight Wolf','Bone Knight','Thorn Devourer','Howling Penitent','Stone Revenant','Blood Vicar','Maw Leech','Iron Troll','Dread Pilgrim','Fog Serpent','Ruin Harpy','Oathbreaker','Nightsworn Giant'];
-  state.bestiary = names.map((name, i) => ({ name, hp: 45 + i * 6, attack: 9 + i, poise: 30 + i * 3, evasion: 0.05 + i * 0.005, hue: (i * 17) % 360 }));
+  state.bestiary = names.map((name, i) => ({ name, tier: 1 + Math.floor(i / 7), hp: 45 + i * 6, attack: 9 + i, poise: 30 + i * 3, evasion: 0.05 + i * 0.005, hue: (i * 17) % 360 }));
 }
 
 function monsterSvg(name, h) {
@@ -418,13 +435,17 @@ function loadGame() {
 }
 
 function moveStep(ts) {
-  if (!state.joystick.active || state.mode !== 'explore') return;
+  if (!state.destination || state.mode !== 'explore') return;
   if (ts - state.lastStep < state.stepMs) return;
   state.lastStep = ts;
-  const { dx, dy } = state.joystick;
+  const dx = Math.sign(state.destination.x - state.player.pos.x);
+  const dy = Math.sign(state.destination.y - state.player.pos.y);
   if (!dx && !dy) return;
   state.player.pos.x = clamp(state.player.pos.x + dx, 0, MAP_SIZE - 1);
   state.player.pos.y = clamp(state.player.pos.y + dy, 0, MAP_SIZE - 1);
+  if (state.player.pos.x === state.destination.x && state.player.pos.y === state.destination.y) {
+    state.destination = null;
+  }
   const biome = biomeAt(state.player.pos.x, state.player.pos.y);
   const travel = biomeTravelProfile(biome);
   state.player.stamina = clamp(state.player.stamina - travel.stamina, 0, 100);
@@ -469,11 +490,27 @@ function combatAction(action) {
   enemyTurn(1);
   if (state.encounter.hpNow <= 0) {
     addLog(`Defeated ${state.encounter.name}.`);
+    const loot = rollLoot(state.encounter);
+    if (loot) {
+      state.player.inventory.unshift(loot);
+      addLog(`Loot found: ${loot.name}.`);
+      renderInventory();
+    }
     state.monsters = state.monsters.filter((m) => m.uid !== state.encounter.uid);
     state.encounter = null;
     state.mode = 'explore';
     setExploreActions();
   }
+}
+
+function rollLoot(monster) {
+  const tier = monster.tier || 1;
+  const rarityAllowed = tier === 1 ? ['common'] : tier === 2 ? ['common', 'rare'] : tier === 3 ? ['rare', 'magical'] : ['magical', 'legendary'];
+  const pool = state.itemPool.filter((it) => it.tier <= Math.min(4, tier + 1) && rarityAllowed.includes(it.rarity));
+  if (!pool.length) return null;
+  const roll = Math.random();
+  if (roll > 0.88) return pool[rand(0, pool.length - 1)];
+  return null;
 }
 
 function enemyTurn(mult) {
@@ -485,29 +522,6 @@ function enemyTurn(mult) {
   updateHud();
 }
 
-function bindJoystick() {
-  const update = (ev) => {
-    const t = ev.touches ? ev.touches[0] : ev;
-    const r = el.joystick.getBoundingClientRect();
-    const cx = r.left + r.width / 2; const cy = r.top + r.height / 2;
-    const rx = t.clientX - cx; const ry = t.clientY - cy;
-    const dist = Math.hypot(rx, ry); const max = 35; const sc = dist > max ? max / dist : 1;
-    const x = rx * sc; const y = ry * sc;
-    el.knob.style.transform = `translate(${x}px,${y}px)`;
-    state.joystick.dx = Math.abs(x) < 10 ? 0 : (x > 0 ? 1 : -1);
-    state.joystick.dy = Math.abs(y) < 10 ? 0 : (y > 0 ? 1 : -1);
-  };
-  const start = (ev) => { state.joystick.active = true; update(ev); };
-  const move = (ev) => { if (state.joystick.active) update(ev); };
-  const end = () => { state.joystick.active = false; state.joystick.dx = 0; state.joystick.dy = 0; el.knob.style.transform = 'translate(0px,0px)'; };
-  el.joystick.addEventListener('touchstart', start, { passive: true });
-  el.joystick.addEventListener('touchmove', move, { passive: true });
-  el.joystick.addEventListener('touchend', end, { passive: true });
-  el.joystick.addEventListener('mousedown', start);
-  window.addEventListener('mousemove', move);
-  window.addEventListener('mouseup', end);
-}
-
 function gameLoop(ts = 0) {
   moveStep(ts);
   const daylight = 0.72 + Math.sin(state.day * 0.24) * 0.18;
@@ -515,7 +529,12 @@ function gameLoop(ts = 0) {
   requestAnimationFrame(gameLoop);
 }
 
-function initStarterEquip() { SLOT_ORDER.forEach((s) => { const i = state.player.inventory.find((x) => x.slot === s); if (i) state.player.equipment[s] = i; }); }
+function initStarterEquip() {
+  SLOT_ORDER.forEach((s) => {
+    const starter = state.player.inventory.find((x) => x.slot === s && x.rarity === 'common' && x.tier === 1);
+    if (starter) state.player.equipment[s] = starter;
+  });
+}
 
 function init() {
   generateItems();
@@ -528,7 +547,6 @@ function init() {
   renderCharacterScreen();
   updateHud();
   renderMapChunk();
-  bindJoystick();
   bindTabs();
   setExploreActions();
   el.saveBtn.addEventListener('click', saveGame);
@@ -551,6 +569,7 @@ function init() {
     }
   }
   addLog(`Loaded world ${MAP_SIZE}x${MAP_SIZE}, ${state.player.inventory.length} items, ${state.bestiary.length} monster types.`);
+  el.encounter.textContent = 'Tap a tile to set destination. Your party will march there automatically.';
   gameLoop();
 }
 
