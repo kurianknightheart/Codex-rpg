@@ -298,7 +298,9 @@ function generateItems() {
     }
   });
   state.itemPool = state.itemPool.slice(0, 200);
-  state.player.inventory = state.itemPool.slice(0, 50);
+  const starterWeapon = state.itemPool.find((it) => it.slot === 'weapon' && it.rarity === 'common' && it.tier === 1);
+  const starterChest = state.itemPool.find((it) => it.slot === 'chestArmor' && it.rarity === 'common' && it.tier === 1);
+  state.player.inventory = [starterWeapon, starterChest].filter(Boolean);
 }
 
 function equipItem(item) {
@@ -793,10 +795,11 @@ function gameLoop(ts = 0) {
 }
 
 function initStarterEquip() {
-  SLOT_ORDER.forEach((s) => {
-    const starter = state.player.inventory.find((x) => x.slot === s && x.rarity === 'common' && x.tier === 1);
-    if (starter) state.player.equipment[s] = starter;
-  });
+  state.player.equipment = {};
+  const starterWeapon = state.player.inventory.find((x) => x.slot === 'weapon');
+  const starterChest = state.player.inventory.find((x) => x.slot === 'chestArmor');
+  if (starterWeapon) state.player.equipment.weapon = starterWeapon;
+  if (starterChest) state.player.equipment.chestArmor = starterChest;
 }
 
 function init() {
