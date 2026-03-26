@@ -31,8 +31,11 @@ const state = {
     focus: 70,
     fatigue: 0,
     bodyTemp: 36.8,
+    level: 1,
+    xp: 0,
+    xpToNext: 100,
+    unspentAttr: 0,
     stats: { strength: 7, dexterity: 7, intelligence: 6, endurance: 8, willpower: 6 },
-    xp: {},
     equipment: {},
     inventory: [],
   },
@@ -62,6 +65,9 @@ const el = {
   saveBtn: document.getElementById('saveBtn'),
   loadBtn: document.getElementById('loadBtn'),
   lootDrop: document.getElementById('lootDrop'),
+  levelUpPanel: document.getElementById('levelUpPanel'),
+  levelUpText: document.getElementById('levelUpText'),
+  levelUpChoices: document.getElementById('levelUpChoices'),
 };
 
 function addLog(t) { const p = document.createElement('p'); p.textContent = `[Day ${Math.floor(state.day)}] ${t}`; el.log.prepend(p); }
@@ -377,8 +383,11 @@ function updateHud() {
   });
   el.resourceBars.innerHTML = '';
   const calc = calculationSnapshot();
-  [['HP', calc.hp], ['STM', state.player.stamina], ['FOC', state.player.focus], ['DEF', calc.defense], ['FTG', calc.fatigue]].forEach(([k, v]) => {
-    const d = document.createElement('div'); d.className = 'pill'; d.textContent = `${k} ${Math.round(v)}`; el.resourceBars.appendChild(d);
+  [['LVL', state.player.level], ['XP', `${state.player.xp}/${state.player.xpToNext}`], ['HP', calc.hp], ['STM', state.player.stamina], ['FOC', state.player.focus], ['DEF', calc.defense], ['FTG', calc.fatigue]].forEach(([k, v]) => {
+    const d = document.createElement('div');
+    d.className = 'pill';
+    d.textContent = `${k} ${typeof v === 'number' ? Math.round(v) : v}`;
+    el.resourceBars.appendChild(d);
   });
 }
 
@@ -449,6 +458,7 @@ function drawMonsters() {
     if (Math.abs(m.x - px) > VIEW_RADIUS || Math.abs(m.y - py) > VIEW_RADIUS) return;
     const node = document.createElement('div');
     node.className = 'monster';
+    node.dataset.uid = m.uid;
     node.innerHTML = monsterSvg(m.name, m.hue);
     const p = iso(m.x - px + VIEW_RADIUS, m.y - py + VIEW_RADIUS);
     node.style.left = `${p.x + 38}px`;
@@ -531,8 +541,11 @@ function applySaveData(data) {
     focus: 70,
     fatigue: 0,
     bodyTemp: 36.8,
+    level: 1,
+    xp: 0,
+    xpToNext: 100,
+    unspentAttr: 0,
     stats: { strength: 7, dexterity: 7, intelligence: 6, endurance: 8, willpower: 6 },
-    xp: {},
     equipment: {},
     inventory: [],
   };
@@ -541,7 +554,10 @@ function applySaveData(data) {
     ...data.player,
     pos: { ...basePlayer.pos, ...(data.player.pos || {}) },
     stats: { ...basePlayer.stats, ...(data.player.stats || {}) },
-    xp: { ...(data.player.xp || {}) },
+    xp: Number.isFinite(data.player.xp) ? data.player.xp : 0,
+    level: Number.isFinite(data.player.level) ? data.player.level : 1,
+    xpToNext: Number.isFinite(data.player.xpToNext) ? data.player.xpToNext : 100,
+    unspentAttr: Number.isFinite(data.player.unspentAttr) ? data.player.unspentAttr : 0,
     equipment: { ...(data.player.equipment || {}) },
     inventory: Array.isArray(data.player.inventory) ? data.player.inventory : [],
   };
@@ -578,6 +594,7 @@ function loadGame() {
     renderCharacterScreen();
     updateHud();
     renderMapChunk();
+    if (state.player.unspentAttr > 0) showLevelUpPanel();
     addLog('Save loaded.');
   } catch (err) {
     addLog('Load failed (corrupt save).');
@@ -639,12 +656,14 @@ function combatAction(action) {
   if (action === 'withdraw') { state.mode = 'explore'; state.encounter = null; setExploreActions(); return; }
   if (action === 'assess') { el.encounter.textContent = `${state.encounter.name} HP ${Math.max(0, state.encounter.hpNow)} Poise ${Math.max(0, state.encounter.poiseNow)}`; enemyTurn(1); return; }
   if (action === 'guard') { state.player.stamina = clamp(state.player.stamina + 8, 0, 100); enemyTurn(0.6); return; }
+  animatePlayerAttack(state.encounter.uid);
   const dmg = totalStat('damage') + state.player.stats.strength * 2 + rand(4, 10);
   if (Math.random() < (0.58 + totalStat('crit') * 0.01)) state.encounter.hpNow -= Math.floor(dmg * 1.5);
   else state.encounter.hpNow -= dmg;
   enemyTurn(1);
   if (state.encounter.hpNow <= 0) {
     addLog(`Defeated ${state.encounter.name}.`);
+    grantXp((state.encounter.tier || 1) * 24 + rand(8, 18));
     const loot = rollLoot(state.encounter);
     if (loot) {
       state.player.inventory.unshift(loot);
@@ -695,9 +714,71 @@ function enemyTurn(mult) {
   if (!state.encounter) return;
   const fatiguePenalty = 1 + state.player.fatigue / 220;
   const hit = Math.max(1, Math.floor((state.encounter.attack + rand(0, 7)) * mult * fatiguePenalty - totalStat('defense') * 0.35));
+  animatePlayerHurt();
   state.player.hp -= hit;
   if (state.player.hp <= 0) { addLog('You fell in battle. Refresh to restart.'); }
   updateHud();
+}
+
+function grantXp(amount) {
+  state.player.xp += amount;
+  addLog(`Gained ${amount} XP.`);
+  let leveled = false;
+  while (state.player.xp >= state.player.xpToNext) {
+    state.player.xp -= state.player.xpToNext;
+    state.player.level += 1;
+    state.player.xpToNext = Math.floor(state.player.xpToNext * 1.3);
+    state.player.unspentAttr += 2;
+    leveled = true;
+    addLog(`Reached level ${state.player.level}! Choose attributes to improve.`);
+  }
+  if (leveled) showLevelUpPanel();
+  updateHud();
+  renderCharacterScreen();
+}
+
+function showLevelUpPanel() {
+  if (!el.levelUpPanel || state.player.unspentAttr <= 0) return;
+  el.levelUpPanel.classList.remove('hidden');
+  el.levelUpText.textContent = `Spend ${state.player.unspentAttr} attribute point(s).`;
+  const attrs = ['strength', 'dexterity', 'intelligence', 'endurance', 'willpower'];
+  el.levelUpChoices.innerHTML = '';
+  attrs.forEach((attr) => {
+    const btn = document.createElement('button');
+    btn.textContent = `+1 ${attr.toUpperCase().slice(0, 3)}`;
+    btn.addEventListener('click', () => {
+      if (state.player.unspentAttr <= 0) return;
+      state.player.stats[attr] += 1;
+      state.player.unspentAttr -= 1;
+      addLog(`${attr} increased to ${state.player.stats[attr]}.`);
+      updateHud();
+      renderCharacterScreen();
+      if (state.player.unspentAttr <= 0) {
+        el.levelUpPanel.classList.add('hidden');
+      } else {
+        el.levelUpText.textContent = `Spend ${state.player.unspentAttr} attribute point(s).`;
+      }
+    });
+    el.levelUpChoices.appendChild(btn);
+  });
+}
+
+function animatePlayerAttack(monsterUid) {
+  el.player.classList.remove('attack');
+  void el.player.offsetWidth;
+  el.player.classList.add('attack');
+  const monsterNode = el.world.querySelector(`.monster[data-uid="${monsterUid}"]`);
+  if (monsterNode) {
+    monsterNode.classList.remove('hit');
+    void monsterNode.offsetWidth;
+    monsterNode.classList.add('hit');
+  }
+}
+
+function animatePlayerHurt() {
+  el.player.classList.remove('hurt');
+  void el.player.offsetWidth;
+  el.player.classList.add('hurt');
 }
 
 function gameLoop(ts = 0) {
@@ -752,6 +833,7 @@ function init() {
         renderCharacterScreen();
         updateHud();
         renderMapChunk();
+        if (state.player.unspentAttr > 0) showLevelUpPanel();
       }
     } catch (_) {
       addLog('Autosave could not be restored.');
