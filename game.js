@@ -1,12 +1,13 @@
 const MAP_SIZE = 1024;
 const VIEW_RADIUS = 11;
-const SLOT_ORDER = ['weapon', 'helmet', 'chestArmor', 'armor', 'offhand', 'belt', 'leggings', 'boots', 'gloves', 'necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'];
-const DEFENSE_SLOTS = ['helmet', 'chestArmor', 'armor', 'offhand', 'belt', 'leggings', 'boots', 'gloves'];
+const SLOT_ORDER = ['weapon', 'helmet', 'chestArmor', 'cape', 'offhand', 'gloves', 'boots', 'necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'];
+const DEFENSE_SLOTS = ['helmet', 'chestArmor', 'armor', 'cape', 'offhand', 'belt', 'leggings', 'boots', 'gloves'];
 const SLOT_LABELS = {
   weapon: 'Weapon',
   helmet: 'Helmet',
   chestArmor: 'Chest Armor',
   armor: 'Armor',
+  cape: 'Cape',
   offhand: 'Offhand',
   belt: 'Belt',
   leggings: 'Leggings',
@@ -46,6 +47,7 @@ const state = {
   encounter: null,
   lastRespawnTick: 0,
   inventoryFilter: 'all',
+  selectedItemId: null,
 };
 
 const el = {
@@ -62,6 +64,8 @@ const el = {
   characterPreview: document.getElementById('characterPreview'),
   equipOverlay: document.getElementById('equipOverlay'),
   characterDetails: document.getElementById('characterDetails'),
+  characterStatsPanel: document.getElementById('characterStatsPanel'),
+  itemDetails: document.getElementById('itemDetails'),
   saveBtn: document.getElementById('saveBtn'),
   loadBtn: document.getElementById('loadBtn'),
   lootDrop: document.getElementById('lootDrop'),
@@ -242,7 +246,7 @@ function iconSvg(item) {
   const v1 = 6 + (idNum % 8);
   const v2 = 10 + (idNum % 14);
   const v3 = 18 + (idNum % 10);
-  const rarityGlow = item.rarity === 'legendary' ? 75 : item.rarity === 'magical' ? 62 : item.rarity === 'rare' ? 55 : 45;
+  const rarityGlow = item.rarity === 'legendary' ? 75 : item.rarity === 'epic' ? 62 : item.rarity === 'rare' ? 55 : 45;
   let studs = '';
   for (let i = 0; i < 10; i += 1) studs += `<circle cx='${8 + i * 2.4}' cy='${34 - (i % 2)}' r='0.9' fill='hsl(${h} 20% 25%)'/>`;
   const core = `<polygon points='20,4 ${30 + (idNum % 4)},14 20,36 ${10 - (idNum % 4)},14' fill='hsl(${h} 58% ${rarityGlow}%)'/>${studs}`;
@@ -265,11 +269,26 @@ function itemDesc(slot, s) {
   return `STR +${s.strength} | INT +${s.intelligence} | WIL +${s.willpower} | CRIT +${s.crit}%`;
 }
 
+const slotLore = {
+  weapon: 'Tempered under moonlit anvils for relentless duels.',
+  helmet: 'A guardian crest that turns fear into resolve.',
+  chestArmor: 'Forged to hold the line against impossible odds.',
+  cape: 'Threads blessed by wardens of the Ashen Marches.',
+  offhand: 'Balanced for parries, counters, and steadfast defense.',
+  gloves: 'Grip and precision refined for split-second strikes.',
+  boots: 'Trusted steps on ruined roads and frozen marshes.',
+  necklace: 'A relic humming with quiet, ancient intent.',
+  ring1: 'Marked with runes of old vows.',
+  ring2: 'A bond of steel and omen.',
+  trinket1: 'A keepsake that stirs forgotten luck.',
+  trinket2: 'A charm against shadows beyond the firelight.',
+};
+
 function generateItems() {
   state.itemPool = [];
   const names = {
     weapon:['Knight Sword','Spear','Falchion','Mace','War Pick'], helmet:['Iron Coif','Nasal Helm','Visor','Padded Coif','Chapel Helm'],
-    chestArmor:['Gambeson','Mail Hauberk','Steel Chestplate','Brigandine','Cuir Bouilli'], armor:['Spaulders','Lamellar Mantle','Knight Pauldrons','Scale Wrap','Warder Harness'],
+    chestArmor:['Gambeson','Mail Hauberk','Steel Chestplate','Brigandine','Cuir Bouilli'], cape:['Warden Cloak','Ember Mantle','Griffon Cape','Ashweave Cape','Royal Drape'], armor:['Spaulders','Lamellar Mantle','Knight Pauldrons','Scale Wrap','Warder Harness'],
     offhand:['Kite Shield','Buckler','Parry Dagger','Hook Shield','Lantern Guard'],
     belt:['Studded Belt','Mercenary Belt','Oath Sash','Chain Belt','Hunter Cord'], leggings:['Rider Leggings','Mail Chausses','Riveted Cuisses','Padded Hose','Ash Greaves'],
     boots:['Riding Boots','Mud Boots','Sabatons','Path Boots','Barrow Boots'], gloves:['Padded Gloves','Mail Mitts','Grip Gloves','Ash Gloves','Knight Gauntlets'],
@@ -277,7 +296,7 @@ function generateItems() {
     ring2:['Copper Ring','Pilgrim Ring','Moon Ring','Iron Ring','Dust Band'], trinket1:['Saint Token','Witch Knot','Bone Dice','War Medal','Fog Charm'],
     trinket2:['Tooth Charm','Prayer Bead','Coin Relic','Rune Pebble','Crow Feather'],
   };
-  const rar = ['common','rare','magical','legendary'];
+  const rar = ['common','rare','epic','legendary'];
   let id = 0;
   SLOT_ORDER.forEach((slot, si) => {
     for (let i = 0; i < 16; i += 1) {
@@ -294,7 +313,18 @@ function generateItems() {
       }
       else { s.strength = slot.includes('ring') ? 1 : 0; s.intelligence = Math.floor(p/2); s.willpower = Math.ceil(p/2); s.crit = p; }
       const rarity = rar[Math.min(3, tier - 1)];
-      state.itemPool.push({ id:`it-${++id}`, slot, rarity, tier, name:`${rarity.toUpperCase()} ${names[slot][i%5]} ${tier}`, stats:s, appearance:{hue:(si*27+i*9)%360} });
+      state.itemPool.push({
+        id:`it-${++id}`,
+        slot,
+        rarity,
+        tier,
+        levelReq: Math.max(1, tier + Math.floor(i / 5)),
+        bonusEffect: rarity === 'legendary' ? 'Soulbound Ward' : rarity === 'epic' ? 'Arcane Resonance' : rarity === 'rare' ? 'Battle Focus' : 'Field Ready',
+        lore: slotLore[slot] || 'Recovered from a forgotten caravan of the Marches.',
+        name:`${rarity.toUpperCase()} ${names[slot][i%5]} ${tier}`,
+        stats:s,
+        appearance:{hue:(si*27+i*9)%360}
+      });
     }
   });
   state.itemPool = state.itemPool.slice(0, 200);
@@ -305,41 +335,39 @@ function generateItems() {
 
 function equipItem(item) {
   state.player.equipment[item.slot] = item;
+  state.selectedItemId = item.id;
   applyKnight();
   renderEquipment();
   updateHud();
   renderCharacterScreen();
+  renderItemDetails();
   addLog(`Equipped ${item.name}.`);
 }
 
 function renderEquipment() {
   el.equipment.innerHTML = '';
+  const slotPositions = {
+    helmet: [50, 10], chestArmor: [50, 30], cape: [50, 49], weapon: [85, 42], offhand: [15, 42],
+    gloves: [80, 64], boots: [50, 88], necklace: [50, 20], ring1: [21, 68], ring2: [79, 68], trinket1: [21, 85], trinket2: [79, 85],
+  };
   SLOT_ORDER.forEach((slot) => {
     const it = state.player.equipment[slot];
-    const row = document.createElement('div'); row.className = 'slot-row';
-    row.innerHTML = `<strong>${slotLabel(slot)}</strong><small>${it ? it.name : 'Empty'}</small><small>${it ? itemDesc(slot, it.stats) : 'No stats'}</small>`;
-    el.equipment.appendChild(row);
-  });
-  renderEquipmentOverlay();
-}
-
-function renderEquipmentOverlay() {
-  if (!el.equipOverlay) return;
-  el.equipOverlay.innerHTML = '';
-  const slotPositions = {
-    helmet: [50, 10], chestArmor: [50, 30], armor: [50, 43], weapon: [82, 46], offhand: [18, 46],
-    gloves: [50, 53], belt: [50, 67], leggings: [50, 80], boots: [50, 92],
-    necklace: [50, 20], ring1: [14, 64], ring2: [86, 64], trinket1: [20, 87], trinket2: [80, 87],
-  };
-  Object.entries(slotPositions).forEach(([slot, [x, y]]) => {
-    const item = state.player.equipment[slot];
-    const badge = document.createElement('div');
-    badge.className = 'slot-badge';
-    badge.style.left = `${x}%`;
-    badge.style.top = `${y}%`;
-    badge.style.transform = 'translate(-50%,-50%)';
-    badge.textContent = item ? item.rarity[0].toUpperCase() : '-';
-    el.equipOverlay.appendChild(badge);
+    const slotNode = document.createElement('div');
+    const rarityClass = it ? `rarity-${it.rarity}` : '';
+    const selectedClass = it && state.selectedItemId === it.id ? 'selected' : '';
+    slotNode.className = `equip-slot ${it ? '' : 'empty'} ${rarityClass} ${selectedClass}`;
+    slotNode.style.left = `${(slotPositions[slot] || [50,50])[0]}%`;
+    slotNode.style.top = `${(slotPositions[slot] || [50,50])[1]}%`;
+    slotNode.style.transform = 'translate(-50%,-50%)';
+    slotNode.innerHTML = `${it ? iconSvg(it) : `<span class="slot-empty">+</span>`}<span class="slot-label">${slotLabel(slot)}</span>`;
+    slotNode.addEventListener('click', () => {
+      if (!it) return;
+      state.selectedItemId = it.id;
+      renderEquipment();
+      renderInventory();
+      renderItemDetails();
+    });
+    el.equipment.appendChild(slotNode);
   });
 }
 
@@ -348,7 +376,7 @@ function renderInventory() {
   const filter = state.inventoryFilter;
   const filtered = state.player.inventory.filter((item) => {
     if (filter === 'all') return true;
-    if (['common', 'rare', 'magical', 'legendary'].includes(filter)) return item.rarity === filter;
+    if (['common', 'rare', 'epic', 'legendary'].includes(filter)) return item.rarity === filter;
     if (filter === 'weapon') return item.slot === 'weapon';
     if (filter === 'armor') return DEFENSE_SLOTS.includes(item.slot);
     if (filter === 'chestArmor') return item.slot === 'chestArmor';
@@ -357,9 +385,16 @@ function renderInventory() {
     return true;
   });
   filtered.slice(0, 40).forEach((item) => {
-    const c = document.createElement('div'); c.className = 'item-card';
+    const c = document.createElement('div');
+    c.className = `item-card ${state.selectedItemId === item.id ? 'selected' : ''}`;
     c.innerHTML = `<div class='item-icon'>${iconSvg(item)}</div><div class='item-meta'><strong>${item.name}</strong><small>${slotLabel(item.slot)} · ${item.rarity}</small><small>${itemDesc(item.slot, item.stats)}</small><button>Equip</button></div>`;
-    c.querySelector('button').addEventListener('click', () => equipItem(item));
+    c.addEventListener('click', () => {
+      state.selectedItemId = item.id;
+      renderInventory();
+      renderEquipment();
+      renderItemDetails();
+    });
+    c.querySelector('button').addEventListener('click', (ev) => { ev.stopPropagation(); equipItem(item); });
     el.inventory.appendChild(c);
   });
 }
@@ -410,6 +445,40 @@ function renderCharacterScreen() {
     <p><strong>Effective HP:</strong> ${calc.hp} <span class='formula'>Current HP ${state.player.hp} + HP bonus ${totalStat('hpIncrease')}</span></p>
     <p><strong>Fatigue:</strong> ${calc.fatigue} <span class='formula'>Increases with difficult terrain; higher fatigue lowers sustained combat performance.</span></p>
     <p><strong>Body Temperature:</strong> ${calc.bodyTemp}°C <span class='formula'>Biome climate shifts temperature; extreme cold/heat increases survival risk.</span></p>
+  `;
+  renderCharacterStatsPanel();
+}
+
+function renderCharacterStatsPanel() {
+  if (!el.characterStatsPanel) return;
+  const calc = calculationSnapshot();
+  const lines = [
+    ['Attack', calc.damage],
+    ['Defense', calc.defense],
+    ['Magic', derivedAttr('intelligence') * 2 + totalStat('willpower')],
+    ['Agility', Math.round(derivedAttr('dexterity') * 1.6)],
+    ['Vitality', calc.hp],
+    ['Crit %', Math.round(calc.crit * 100)],
+  ];
+  el.characterStatsPanel.innerHTML = lines.map(([k, v]) => `<div class="stat-chip"><strong>${k}</strong><br>${v}</div>`).join('');
+}
+
+function renderItemDetails() {
+  if (!el.itemDetails) return;
+  const selected = state.player.inventory.find((it) => it.id === state.selectedItemId)
+    || Object.values(state.player.equipment).find((it) => it?.id === state.selectedItemId);
+  if (!selected) {
+    el.itemDetails.innerHTML = `<p>Select an equipped or inventory item to inspect its details.</p>`;
+    return;
+  }
+  el.itemDetails.innerHTML = `
+    <h4>${selected.name}</h4>
+    <span class="rarity ${selected.rarity}">${selected.rarity}</span>
+    <p><strong>Type:</strong> ${slotLabel(selected.slot)}</p>
+    <p><strong>Level Requirement:</strong> ${selected.levelReq || selected.tier}</p>
+    <p><strong>Stats:</strong> ${itemDesc(selected.slot, selected.stats)}</p>
+    <p><strong>Bonus Effect:</strong> ${selected.bonusEffect || 'None'}</p>
+    <p><strong>Lore:</strong> ${selected.lore || 'An item from the Ashen Marches.'}</p>
   `;
 }
 
@@ -594,6 +663,7 @@ function loadGame() {
     renderEquipment();
     renderInventory();
     renderCharacterScreen();
+    renderItemDetails();
     updateHud();
     renderMapChunk();
     if (state.player.unspentAttr > 0) showLevelUpPanel();
@@ -682,7 +752,7 @@ function combatAction(action) {
 
 function rollLoot(monster) {
   const tier = monster.tier || 1;
-  const rarityAllowed = tier === 1 ? ['common'] : tier === 2 ? ['common', 'rare'] : tier === 3 ? ['rare', 'magical'] : ['magical', 'legendary'];
+  const rarityAllowed = tier === 1 ? ['common'] : tier === 2 ? ['common', 'rare'] : tier === 3 ? ['rare', 'epic'] : ['epic', 'legendary'];
   const pool = state.itemPool.filter((it) => it.tier <= Math.min(4, tier + 1) && rarityAllowed.includes(it.rarity));
   const fallbackPool = state.itemPool.length ? state.itemPool : state.player.inventory;
   const sourcePool = pool.length ? pool : fallbackPool;
@@ -811,6 +881,7 @@ function init() {
   renderEquipment();
   renderInventory();
   renderCharacterScreen();
+  renderItemDetails();
   updateHud();
   renderMapChunk();
   bindMapTap();
@@ -834,6 +905,7 @@ function init() {
         renderEquipment();
         renderInventory();
         renderCharacterScreen();
+        renderItemDetails();
         updateHud();
         renderMapChunk();
         if (state.player.unspentAttr > 0) showLevelUpPanel();

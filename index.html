@@ -37,20 +37,27 @@
     </section>
 
     <section id="screen-character" class="screen">
-      <div class="character-card">
-        <div id="characterPreview" class="character-preview">
-          <div id="equipOverlay" class="equip-overlay"></div>
+      <div class="equipment-scene">
+        <div class="panel panel-stats">
+          <h3>Champion Stats</h3>
+          <div id="characterStatsPanel" class="character-stats-panel"></div>
         </div>
-        <div id="characterDetails" class="character-details"></div>
+        <div class="panel panel-character">
+          <div id="characterPreview" class="character-preview ornate">
+            <div id="equipmentSlots" class="equipment-ring"></div>
+            <div id="equipOverlay" class="equip-overlay"></div>
+          </div>
+        </div>
+        <div class="panel panel-item">
+          <h3>Selected Item</h3>
+          <div id="itemDetails" class="item-details"></div>
+        </div>
       </div>
+      <div id="characterDetails" class="character-details"></div>
     </section>
 
     <section id="screen-inventory" class="screen">
       <div class="inv-layout">
-        <div>
-          <h3>Equipment</h3>
-          <div id="equipmentSlots" class="equipment-slots"></div>
-        </div>
         <div>
           <div class="inventory-head">
             <h3>Inventory</h3>
@@ -63,7 +70,7 @@
               <option value="jewelry">Jewelry</option>
               <option value="common">Common</option>
               <option value="rare">Rare</option>
-              <option value="magical">Magical</option>
+              <option value="epic">Epic</option>
               <option value="legendary">Legendary</option>
             </select>
           </div>
