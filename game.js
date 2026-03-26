@@ -404,11 +404,19 @@ function bindTabs() {
 }
 
 function bindMapTap() {
-  el.world.addEventListener('pointerdown', (ev) => {
-    const { x, y } = screenToWorldTile(ev.clientX, ev.clientY);
+  const onTap = (clientX, clientY) => {
+    const { x, y } = screenToWorldTile(clientX, clientY);
     state.destination = { x, y };
+    state.mode = 'explore';
+    state.encounter = null;
     el.encounter.textContent = `Travelling to (${x}, ${y}) through ${biomeAt(x, y)}.`;
-  });
+  };
+  el.world.addEventListener('pointerdown', (ev) => onTap(ev.clientX, ev.clientY));
+  el.world.addEventListener('click', (ev) => onTap(ev.clientX, ev.clientY));
+  el.world.addEventListener('touchstart', (ev) => {
+    if (!ev.touches?.length) return;
+    onTap(ev.touches[0].clientX, ev.touches[0].clientY);
+  }, { passive: true });
 }
 
 function setExploreActions() {
@@ -538,6 +546,11 @@ function moveStep(ts) {
 }
 
 function checkEncounter() {
+  if (state.destination) {
+    const biomeMoving = biomeAt(state.player.pos.x, state.player.pos.y);
+    el.encounter.textContent = `Marching... Biome: ${biomeMoving}.`;
+    return;
+  }
   const p = state.player.pos;
   const biome = biomeAt(p.x, p.y);
   const travel = biomeTravelProfile(biome);

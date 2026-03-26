@@ -31,9 +31,9 @@ body { margin: 0; color: var(--text); background: radial-gradient(circle at top,
 }
 .tile { position: absolute; width: 76px; height: 38px; transform: rotate(45deg) skew(-12deg,-12deg); border: 1px solid rgba(0,0,0,.45); opacity: .88; z-index: 1; }
 .tile.grass{background:#3c5237}.tile.road{background:#64584a}.tile.water{background:#2f4d63}.tile.swamp{background:#3f4b39}.tile.frost{background:#6f7788}.tile.desert{background:#7d6848}.tile.ruin{background:#493b45}.tile.forest{background:#2f472f}.tile.hills{background:#5b6254}.tile.ash{background:#4f4a54}.tile.moor{background:#50513c}
-.monster { position: absolute; width: 46px; height: 46px; transform: translate(-50%,-50%); z-index: 4; animation: bob .9s ease-in-out infinite alternate; }
+.monster { position: absolute; width: 46px; height: 46px; transform: translate(-50%,-50%); z-index: 4; animation: bob .9s ease-in-out infinite alternate; pointer-events:none; }
 .monster svg{width:100%;height:100%}
-.deco { position: absolute; z-index: 2; transform: translate(-50%,-50%); opacity: .9; }
+.deco { position: absolute; z-index: 2; transform: translate(-50%,-50%); opacity: .9; pointer-events:none; }
 .deco.tree { width: 20px; height: 24px; border-radius: 55% 55% 40% 40%; background: linear-gradient(#3f6a3e,#27472b); box-shadow: 0 12px 0 -7px #4d3f2f; }
 .deco.reed { width: 10px; height: 20px; background: linear-gradient(#89a267,#5c6f49); border-radius: 8px; }
 .deco.stone { width: 14px; height: 12px; background: #6f6a63; border-radius: 7px; }
