@@ -33,6 +33,14 @@ const SLOT_LABELS = {
   trinket1: 'Trinket 1',
   trinket2: 'Trinket 2',
 };
+const WEAPON_TYPES = ['sword', 'spear', 'falchion', 'mace', 'warpick'];
+const WEAPON_PASSIVES = {
+  sword: ['Balanced Edge (+2% crit)', 'Duelist Rhythm (+4% damage)', 'Parry Expert (+6% damage)'],
+  spear: ['Long Reach (+1 reach)', 'Impaling Thrust (+5% crit)', 'Linebreaker (+8% damage)'],
+  falchion: ['Crescent Cuts (+3% damage)', 'Bleeding Arc (+5% damage)', 'Whirl Master (+7% crit)'],
+  mace: ['Crushing Blows (+3 stun)', 'Bonebreaker (+5% damage)', 'Concussive Force (+8% damage)'],
+  warpick: ['Armor Split (+4% damage)', 'Sunder (+6% damage)', 'Rend Plate (+10% damage)'],
+};
 
 const state = {
   mode: 'explore',
@@ -54,6 +62,8 @@ const state = {
     skillCooldowns: { powerStrike: 0 },
     materials: { arcaneDust: 0, ironShard: 0 },
     stash: [],
+    weaponProficiency: {},
+    weaponProficiency: {},
     stats: { strength: 7, dexterity: 7, intelligence: 6, endurance: 8, willpower: 6 },
     equipment: {},
     inventory: [],
@@ -87,6 +97,7 @@ const el = {
   characterDetails: document.getElementById('characterDetails'),
   characterStatsPanel: document.getElementById('characterStatsPanel'),
   itemDetails: document.getElementById('itemDetails'),
+  weaponProficiencyPanel: document.getElementById('weaponProficiencyPanel'),
   newGameBtn: document.getElementById('newGameBtn'),
   saveBtn: document.getElementById('saveBtn'),
   loadBtn: document.getElementById('loadBtn'),
@@ -314,6 +325,47 @@ function itemDesc(slot, s) {
   return `STR +${s.strength} | INT +${s.intelligence} | WIL +${s.willpower} | CRIT +${s.crit}%`;
 }
 
+function weaponTypeFromItem(item) {
+  const n = (item?.name || '').toLowerCase();
+  if (n.includes('spear')) return 'spear';
+  if (n.includes('falchion')) return 'falchion';
+  if (n.includes('mace')) return 'mace';
+  if (n.includes('war pick') || n.includes('warpick')) return 'warpick';
+  return 'sword';
+}
+
+function ensureWeaponProficiency() {
+  if (!state.player.weaponProficiency || typeof state.player.weaponProficiency !== 'object') state.player.weaponProficiency = {};
+  WEAPON_TYPES.forEach((t) => {
+    if (!state.player.weaponProficiency[t]) state.player.weaponProficiency[t] = { xp: 0, unlocked: [] };
+  });
+}
+
+function proficiencyLevel(type) {
+  ensureWeaponProficiency();
+  return Math.min(10, Math.floor((state.player.weaponProficiency[type]?.xp || 0) / 1000));
+}
+
+function proficiencyDamageBonus(type) {
+  return proficiencyLevel(type) * 0.015;
+}
+
+function addWeaponProficiencyXP(type, amount) {
+  ensureWeaponProficiency();
+  const prof = state.player.weaponProficiency[type];
+  const prevLevel = proficiencyLevel(type);
+  prof.xp = Math.min(10000, prof.xp + amount);
+  const newLevel = proficiencyLevel(type);
+  const unlockThresholds = [2, 5, 8];
+  unlockThresholds.forEach((lvl, idx) => {
+    if (newLevel >= lvl && !prof.unlocked.includes(WEAPON_PASSIVES[type][idx])) {
+      prof.unlocked.push(WEAPON_PASSIVES[type][idx]);
+      addLog(`${type.toUpperCase()} mastery unlocked: ${WEAPON_PASSIVES[type][idx]}.`);
+    }
+  });
+  if (newLevel > prevLevel) addLog(`${type.toUpperCase()} proficiency reached level ${newLevel}.`);
+}
+
 const slotLore = {
   weapon: 'Tempered under moonlit anvils for relentless duels.',
   helmet: 'A guardian crest that turns fear into resolve.',
@@ -496,7 +548,9 @@ function totalStat(k) { return Object.values(state.player.equipment).reduce((a, 
 function derivedAttr(k) { return (state.player.stats[k] || 0) + totalStat(k); }
 
 function calculationSnapshot() {
-  const damage = totalStat('damage') + derivedAttr('strength') * 2;
+  const currentType = weaponTypeFromItem(state.player.equipment.weapon);
+  const profBonus = 1 + proficiencyDamageBonus(currentType);
+  const damage = Math.floor((totalStat('damage') + derivedAttr('strength') * 2) * profBonus);
   const crit = (0.58 + totalStat('crit') * 0.01).toFixed(2);
   const defense = totalStat('defense');
   const hp = state.player.hp + totalStat('hpIncrease');
@@ -540,6 +594,7 @@ function renderCharacterScreen() {
     <p><strong>Body Temperature:</strong> ${calc.bodyTemp}°C <span class='formula'>Biome climate shifts temperature; extreme cold/heat increases survival risk.</span></p>
   `;
   renderCharacterStatsPanel();
+  renderWeaponProficiencyPanel();
 }
 
 function renderCharacterStatsPanel() {
@@ -554,6 +609,24 @@ function renderCharacterStatsPanel() {
     ['Crit %', Math.round(calc.crit * 100)],
   ];
   el.characterStatsPanel.innerHTML = lines.map(([k, v]) => `<div class="stat-chip"><strong>${k}</strong><br>${v}</div>`).join('');
+}
+
+function renderWeaponProficiencyPanel() {
+  if (!el.weaponProficiencyPanel) return;
+  ensureWeaponProficiency();
+  el.weaponProficiencyPanel.innerHTML = WEAPON_TYPES.map((type) => {
+    const prof = state.player.weaponProficiency[type];
+    const xp = prof.xp || 0;
+    const level = proficiencyLevel(type);
+    const unlocked = prof.unlocked?.length ? prof.unlocked.join(' • ') : 'No passive unlocked yet';
+    return `
+      <div class="wp-row">
+        <div class="wp-head"><strong>${type.toUpperCase()}</strong><span>Lv ${level}</span><span>${xp}/10000</span></div>
+        <div class="wp-bar"><span style="width:${(xp / 10000) * 100}%"></span></div>
+        <small>${unlocked}</small>
+      </div>
+    `;
+  }).join('');
 }
 
 function renderItemDetails() {
@@ -792,6 +865,7 @@ function applySaveData(data) {
     equipment: { ...(data.player.equipment || {}) },
     inventory: Array.isArray(data.player.inventory) ? data.player.inventory : [],
   };
+  ensureWeaponProficiency();
   state.monsters = Array.isArray(data.monsters) ? data.monsters : [];
   state.encounter = data.encounter ?? null;
   state.quests = Array.isArray(data.quests) ? data.quests : state.quests;
@@ -916,7 +990,9 @@ function combatAction(action) {
     state.player.skillCooldowns.powerStrike = 3;
   }
   animatePlayerAttack(state.encounter.uid);
-  const dmgBase = totalStat('damage') + state.player.stats.strength * 2 + rand(4, 10);
+  const weaponType = weaponTypeFromItem(state.player.equipment.weapon);
+  addWeaponProficiencyXP(weaponType, action === 'power strike' ? 55 : 30);
+  const dmgBase = Math.floor((totalStat('damage') + state.player.stats.strength * 2 + rand(4, 10)) * (1 + proficiencyDamageBonus(weaponType)));
   const dmg = action === 'power strike' ? Math.floor(dmgBase * 1.65) : dmgBase;
   if (Math.random() < (0.58 + totalStat('crit') * 0.01)) state.encounter.hpNow -= Math.floor(dmg * 1.5);
   else state.encounter.hpNow -= dmg;
@@ -1067,6 +1143,7 @@ function initStarterEquip() {
 
 function init() {
   generateItems();
+  ensureWeaponProficiency();
   generateBestiary();
   respawnMonsters();
   initStarterEquip();
