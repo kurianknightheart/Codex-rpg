@@ -374,7 +374,6 @@ function renderEquipment() {
     const selectedClass = it && state.selectedItemId === it.id ? 'selected' : '';
     slotNode.className = `equip-slot ${it ? '' : 'empty'} ${rarityClass} ${selectedClass}`;
     slotNode.innerHTML = `
-      ${slotFrameSvg(slot, it, Boolean(selectedClass))}
       <div class="slot-core">${it ? iconSvg(it) : `<span class="slot-empty">${slotPlaceholderGlyph(slot)}</span>`}</div>
       <span class="slot-label">${slotLabel(slot)}</span>
     `;
@@ -402,25 +401,6 @@ function renderEquipment() {
 
   board.append(leftCol, center, rightCol);
   el.equipment.append(board, bottomRow);
-}
-
-function slotFrameSvg(slot, item, selected) {
-  const rarity = item?.rarity || 'common';
-  const hue = rarity === 'legendary' ? 40 : rarity === 'epic' ? 280 : rarity === 'rare' ? 210 : rarity === 'uncommon' ? 140 : 230;
-  const glow = selected ? 70 : 50;
-  return `<svg class="slot-frame" viewBox="0 0 100 100" aria-hidden="true">
-    <defs>
-      <linearGradient id="metal-${slot}" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stop-color="hsl(${hue} 20% 40%)"/>
-        <stop offset="50%" stop-color="hsl(${hue} 22% 18%)"/>
-        <stop offset="100%" stop-color="hsl(${hue} 28% 32%)"/>
-      </linearGradient>
-    </defs>
-    <rect x="6" y="6" width="88" height="88" rx="17" fill="url(#metal-${slot})" opacity=".95"/>
-    <rect x="12" y="12" width="76" height="76" rx="13" fill="none" stroke="hsl(${hue} 45% ${glow}%)" stroke-width="2.6" opacity=".7"/>
-    <path d="M20 20 L33 20 L20 33 Z M80 20 L67 20 L80 33 Z M20 80 L33 80 L20 67 Z M80 80 L67 80 L80 67 Z" fill="hsl(${hue} 55% 62%)" opacity=".35"/>
-    <circle cx="50" cy="50" r="24" fill="none" stroke="hsl(${hue} 50% 58%)" stroke-width="1.6" opacity=".34"/>
-  </svg>`;
 }
 
 function slotPlaceholderGlyph(slot) {
