@@ -138,6 +138,7 @@ body { margin: 0; color: var(--text); background: radial-gradient(circle at top,
 @keyframes legSwingReverse{from{transform:translateY(-1px) rotate(-3deg)}to{transform:translateY(0)}}
 .controls-row{margin-top:.45rem;display:flex;gap:.6rem;align-items:center}
 .encounter{width:100%;font-size:.82rem;color:var(--muted);padding:.5rem;border:1px solid #4b3b5d;border-radius:9px;background:#21182b}
+.encounter + .encounter{margin-top:.35rem;border-color:#6a4f83;color:#d5c7ae}
 .actions{margin-top:.45rem;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.4rem}
 button{border:1px solid #947449;background:linear-gradient(180deg,#514065,#2b2137);color:var(--text);border-radius:9px;padding:.5rem .42rem;font-size:.76rem;min-height:42px;box-shadow:inset 0 1px 0 rgba(255,221,167,.24),0 3px 7px rgba(0,0,0,.35)}
 button:hover{filter:brightness(1.1)}

@@ -1,5 +1,19 @@
 const MAP_SIZE = 1024;
 const VIEW_RADIUS = 11;
+const SAVE_VERSION = 2;
+const CONTENT = {
+  zones: [
+    { id: 'ashen-approach', name: 'Ashen Approach', minTier: 1, maxTier: 1, minDist: 0, maxDist: 120 },
+    { id: 'barrow-lowlands', name: 'Barrow Lowlands', minTier: 2, maxTier: 2, minDist: 120, maxDist: 220 },
+    { id: 'frost-wards', name: 'Frost Wards', minTier: 3, maxTier: 3, minDist: 220, maxDist: 330 },
+    { id: 'crownfall-depths', name: 'Crownfall Depths', minTier: 4, maxTier: 4, minDist: 330, maxDist: 9999 },
+  ],
+  affixes: {
+    prefix: ['Stalwart', 'Runed', 'Dire', 'Stormforged', 'Sanctified'],
+    suffix: ['of Embers', 'of Oaths', 'of Cinders', 'of Ruin', 'of Dawn'],
+  },
+  gems: ['Ruby', 'Sapphire', 'Topaz', 'Emerald'],
+};
 const SLOT_ORDER = ['weapon', 'helmet', 'chestArmor', 'cape', 'offhand', 'gloves', 'boots', 'necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'];
 const DEFENSE_SLOTS = ['helmet', 'chestArmor', 'armor', 'cape', 'offhand', 'belt', 'leggings', 'boots', 'gloves'];
 const SLOT_LABELS = {
@@ -36,6 +50,10 @@ const state = {
     xp: 0,
     xpToNext: 100,
     unspentAttr: 0,
+    mana: 40,
+    skillCooldowns: { powerStrike: 0 },
+    materials: { arcaneDust: 0, ironShard: 0 },
+    stash: [],
     stats: { strength: 7, dexterity: 7, intelligence: 6, endurance: 8, willpower: 6 },
     equipment: {},
     inventory: [],
@@ -45,6 +63,8 @@ const state = {
   bestiary: [],
   monsters: [],
   encounter: null,
+  quests: [{ id: 'hunt-elite', title: 'Cull Elite Threats', objective: 'Defeat 2 elite monsters', progress: 0, goal: 2, done: false }],
+  dungeon: { active: false, tier: 1, room: 0, objectiveBossDefeated: false },
   lastRespawnTick: 0,
   inventoryFilter: 'all',
   selectedItemId: null,
@@ -56,6 +76,7 @@ const el = {
   coreStats: document.getElementById('coreStats'),
   resourceBars: document.getElementById('resourceBars'),
   encounter: document.getElementById('encounterPanel'),
+  questTracker: document.getElementById('questTracker'),
   actions: document.getElementById('actions'),
   equipment: document.getElementById('equipmentSlots'),
   inventory: document.getElementById('inventory'),
@@ -192,6 +213,13 @@ function biomeTravelProfile(biome) {
     water: { stamina: 1.7, fatigue: 1.05, temp: -0.11, danger: 1.6 },
   };
   return table[biome] || table.grass;
+}
+
+function zoneAt(x, y) {
+  const dx = x - MAP_SIZE / 2;
+  const dy = y - MAP_SIZE / 2;
+  const dist = Math.hypot(dx, dy);
+  return CONTENT.zones.find((z) => dist >= z.minDist && dist < z.maxDist) || CONTENT.zones[0];
 }
 
 function decoSeed(x, y) {
@@ -335,6 +363,11 @@ function generateItems() {
         slot,
         rarity,
         tier,
+        affixes: [`${CONTENT.affixes.prefix[(id + si) % CONTENT.affixes.prefix.length]}`, `${CONTENT.affixes.suffix[(id + i) % CONTENT.affixes.suffix.length]}`],
+        sockets: rarity === 'legendary' ? 2 : rarity === 'epic' ? 1 : 0,
+        gems: [],
+        setName: (slot === 'chestArmor' || slot === 'boots') && tier >= 3 ? 'Ward of Cinders' : null,
+        uniqueName: rarity === 'legendary' && i % 7 === 0 ? 'Relic of the Dread March' : null,
         levelReq: Math.max(1, tier + Math.floor(i / 5)),
         bonusEffect: rarity === 'legendary' ? 'Soulbound Ward' : rarity === 'epic' ? 'Arcane Resonance' : rarity === 'rare' ? 'Battle Focus' : 'Field Ready',
         lore: slotLore[slot] || 'Recovered from a forgotten caravan of the Marches.',
@@ -426,9 +459,12 @@ function renderInventory() {
     return true;
   });
   filtered.slice(0, 40).forEach((item) => {
+    const equipped = state.player.equipment[item.slot];
+    const compareDefense = (item.stats.defense || 0) - (equipped?.stats?.defense || 0);
+    const compareDamage = (item.stats.damage || 0) - (equipped?.stats?.damage || 0);
     const c = document.createElement('div');
     c.className = `item-card ${state.selectedItemId === item.id ? 'selected' : ''}`;
-    c.innerHTML = `<div class='item-icon'>${iconSvg(item)}</div><div class='item-meta'><strong>${item.name}</strong><small>${slotLabel(item.slot)} · ${item.rarity}</small><small>${itemDesc(item.slot, item.stats)}</small><button>Equip</button></div>`;
+    c.innerHTML = `<div class='item-icon'>${iconSvg(item)}</div><div class='item-meta'><strong>${item.name}</strong><small>${slotLabel(item.slot)} · ${item.rarity}</small><small>${itemDesc(item.slot, item.stats)}</small><small>Compare: DMG ${compareDamage >= 0 ? '+' : ''}${compareDamage} | DEF ${compareDefense >= 0 ? '+' : ''}${compareDefense}</small><button>Equip</button><button class='salvage-btn'>Salvage</button></div>`;
     c.addEventListener('click', () => {
       state.selectedItemId = item.id;
       renderInventory();
@@ -436,8 +472,24 @@ function renderInventory() {
       renderItemDetails();
     });
     c.querySelector('button').addEventListener('click', (ev) => { ev.stopPropagation(); equipItem(item); });
+    c.querySelector('.salvage-btn').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      salvageItem(item.id);
+    });
     el.inventory.appendChild(c);
   });
+}
+
+function salvageItem(itemId) {
+  const idx = state.player.inventory.findIndex((it) => it.id === itemId);
+  if (idx < 0) return;
+  const item = state.player.inventory[idx];
+  state.player.inventory.splice(idx, 1);
+  state.player.materials.arcaneDust += 1 + (item.rarity === 'epic' ? 2 : item.rarity === 'legendary' ? 4 : 0);
+  state.player.materials.ironShard += 1 + item.tier;
+  addLog(`Salvaged ${item.name} for crafting materials.`);
+  renderInventory();
+  updateHud();
 }
 
 function totalStat(k) { return Object.values(state.player.equipment).reduce((a, it) => a + (it?.stats?.[k] || 0), 0); }
@@ -461,7 +513,7 @@ function updateHud() {
   });
   el.resourceBars.innerHTML = '';
   const calc = calculationSnapshot();
-  [['LVL', state.player.level], ['XP', `${state.player.xp}/${state.player.xpToNext}`], ['HP', calc.hp], ['STM', state.player.stamina], ['FOC', state.player.focus], ['DEF', calc.defense], ['FTG', calc.fatigue]].forEach(([k, v]) => {
+  [['LVL', state.player.level], ['XP', `${state.player.xp}/${state.player.xpToNext}`], ['HP', calc.hp], ['STM', state.player.stamina], ['MANA', state.player.mana], ['DEF', calc.defense], ['FTG', calc.fatigue], ['CD', state.player.skillCooldowns.powerStrike], ['DUST', state.player.materials.arcaneDust]].forEach(([k, v]) => {
     const d = document.createElement('div');
     d.className = 'pill';
     d.textContent = `${k} ${typeof v === 'number' ? Math.round(v) : v}`;
@@ -515,9 +567,13 @@ function renderItemDetails() {
   el.itemDetails.innerHTML = `
     <h4>${selected.name}</h4>
     <span class="rarity ${selected.rarity}">${selected.rarity}</span>
+    ${selected.uniqueName ? `<p><strong>Unique:</strong> ${selected.uniqueName}</p>` : ''}
+    ${selected.setName ? `<p><strong>Set:</strong> ${selected.setName}</p>` : ''}
     <p><strong>Type:</strong> ${slotLabel(selected.slot)}</p>
     <p><strong>Level Requirement:</strong> ${selected.levelReq || selected.tier}</p>
     <p><strong>Stats:</strong> ${itemDesc(selected.slot, selected.stats)}</p>
+    <p><strong>Affixes:</strong> ${(selected.affixes || []).join(' · ') || 'None'}</p>
+    <p><strong>Sockets:</strong> ${selected.sockets || 0} ${selected.gems?.length ? `(${selected.gems.join(', ')})` : ''}</p>
     <p><strong>Bonus Effect:</strong> ${selected.bonusEffect || 'None'}</p>
     <p><strong>Lore:</strong> ${selected.lore || 'An item from the Ashen Marches.'}</p>
   `;
@@ -525,7 +581,16 @@ function renderItemDetails() {
 
 function generateBestiary() {
   const names = ['Bog Ghoul','Fen Raider','Crypt Hound','Ash Spider','Hollow Monk','Rook Bandit','Rot Boar','Cairn Witch','Mire Stalker','Grave Crow','Warden Shade','Pike Marauder','Blight Wolf','Bone Knight','Thorn Devourer','Howling Penitent','Stone Revenant','Blood Vicar','Maw Leech','Iron Troll','Dread Pilgrim','Fog Serpent','Ruin Harpy','Oathbreaker','Nightsworn Giant'];
-  state.bestiary = names.map((name, i) => ({ name, tier: 1 + Math.floor(i / 7), hp: 45 + i * 6, attack: 9 + i, poise: 30 + i * 3, evasion: 0.05 + i * 0.005, hue: (i * 17) % 360 }));
+  state.bestiary = names.map((name, i) => ({
+    name,
+    tier: 1 + Math.floor(i / 7),
+    hp: 45 + i * 6,
+    attack: 9 + i,
+    poise: 30 + i * 3,
+    evasion: 0.05 + i * 0.005,
+    hue: (i * 17) % 360,
+    isBossTemplate: i % 11 === 0,
+  }));
 }
 
 function monsterSvg(name, h) {
@@ -550,15 +615,22 @@ function respawnMonsters() {
 function replenishMonsters(targetCount = 14) {
   if (!state.bestiary.length) return;
   const p = state.player.pos;
+  const zone = zoneAt(p.x, p.y);
   for (let i = state.monsters.length; i < targetCount; i += 1) {
-    const t = state.bestiary[rand(0, state.bestiary.length - 1)];
+    const pool = state.bestiary.filter((b) => b.tier <= zone.maxTier + 1 && b.tier >= Math.max(1, zone.minTier - 1));
+    const t = (pool.length ? pool : state.bestiary)[rand(0, (pool.length ? pool : state.bestiary).length - 1)];
+    const isElite = Math.random() < 0.16;
+    const isBoss = state.dungeon.active && !state.dungeon.objectiveBossDefeated && (t.isBossTemplate || Math.random() < 0.12);
     state.monsters.push({
       ...t,
       uid: `m-${Date.now()}-${i}`,
+      isElite,
+      isBoss,
       x: clamp(p.x + rand(-18, 18), 0, MAP_SIZE - 1),
       y: clamp(p.y + rand(-18, 18), 0, MAP_SIZE - 1),
-      hpNow: t.hp,
+      hpNow: Math.floor(t.hp * (isBoss ? 2.5 : isElite ? 1.45 : 1)),
       poiseNow: t.poise,
+      intent: 'Strike',
     });
   }
 }
@@ -643,21 +715,54 @@ function setExploreActions() {
     addLog(`You forage in ${biome} terrain and recover ${gain} vitality.`);
     updateHud();
   });
-  el.actions.append(camp, forage);
+  const dungeon = document.createElement('button');
+  dungeon.textContent = state.dungeon.active ? 'Leave Dungeon' : 'Enter Dungeon';
+  dungeon.addEventListener('click', () => {
+    state.dungeon.active = !state.dungeon.active;
+    state.dungeon.objectiveBossDefeated = false;
+    state.dungeon.tier = zoneAt(state.player.pos.x, state.player.pos.y).maxTier;
+    state.monsters = [];
+    replenishMonsters(state.dungeon.active ? 8 : 14);
+    addLog(state.dungeon.active ? `Entered dungeon tier ${state.dungeon.tier}.` : 'Returned to the overworld.');
+    setExploreActions();
+  });
+  el.actions.append(camp, forage, dungeon);
+}
+
+function progressQuest(id, amount) {
+  const q = state.quests.find((x) => x.id === id);
+  if (!q || q.done) return;
+  q.progress = Math.min(q.goal, q.progress + amount);
+  if (q.progress >= q.goal) {
+    q.done = true;
+    addLog(`Quest complete: ${q.title}.`);
+    state.player.materials.arcaneDust += 5;
+  }
+}
+
+function updateQuestTracker() {
+  if (!el.questTracker) return;
+  const active = state.quests.find((q) => !q.done) || state.quests[0];
+  if (!active) { el.questTracker.textContent = 'Quest: None'; return; }
+  el.questTracker.textContent = `Quest: ${active.title} — ${active.progress}/${active.goal}`;
 }
 
 function exportSave() {
   return {
+    version: SAVE_VERSION,
     day: state.day,
     mode: state.mode,
     player: state.player,
     monsters: state.monsters,
     encounter: state.encounter,
+    quests: state.quests,
+    dungeon: state.dungeon,
   };
 }
 
 function applySaveData(data) {
   if (!data || !data.player) return false;
+  const version = data.version || 1;
   state.day = data.day ?? 1;
   state.mode = data.mode ?? 'explore';
   const basePlayer = {
@@ -689,6 +794,13 @@ function applySaveData(data) {
   };
   state.monsters = Array.isArray(data.monsters) ? data.monsters : [];
   state.encounter = data.encounter ?? null;
+  state.quests = Array.isArray(data.quests) ? data.quests : state.quests;
+  state.dungeon = data.dungeon || state.dungeon;
+  if (version < 2) {
+    state.player.materials = state.player.materials || { arcaneDust: 0, ironShard: 0 };
+    state.player.stash = state.player.stash || [];
+    state.quests = state.quests?.length ? state.quests : [{ id: 'hunt-elite', title: 'Cull Elite Threats', objective: 'Defeat 2 elite monsters', progress: 0, goal: 2, done: false }];
+  }
   state.destination = null;
   return true;
 }
@@ -721,6 +833,7 @@ function loadGame() {
     renderItemDetails();
     updateHud();
     renderMapChunk();
+    updateQuestTracker();
     if (state.player.unspentAttr > 0) showLevelUpPanel();
     addLog('Save loaded.');
   } catch (err) {
@@ -769,18 +882,20 @@ function checkEncounter() {
   }
   const p = state.player.pos;
   const biome = biomeAt(p.x, p.y);
+  const zone = zoneAt(p.x, p.y);
   const travel = biomeTravelProfile(biome);
   const m = state.monsters.find((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= 1);
   if (!m) {
-    el.encounter.textContent = `Exploring ${MAP_SIZE}x${MAP_SIZE}. Biome: ${biome}. Terrain load ${travel.stamina.toFixed(2)}x.`;
+    el.encounter.textContent = `Exploring ${zone.name} (${zone.minTier}-${zone.maxTier}). Biome: ${biome}. Terrain load ${travel.stamina.toFixed(2)}x.`;
     setExploreActions();
     return;
   }
   state.encounter = m;
   state.mode = 'combat';
-  el.encounter.textContent = `${m.name} confronts you.`;
+  const threat = m.isBoss ? 'Boss' : m.isElite ? 'Elite' : 'Normal';
+  el.encounter.textContent = `${threat} ${m.name} confronts you. Intent: ${m.intent}.`;
   el.actions.innerHTML = '';
-  ['Strike', 'Guard', 'Assess', 'Withdraw'].forEach((a) => {
+  ['Strike', 'Power Strike', 'Guard', 'Dodge', 'Assess', 'Withdraw'].forEach((a) => {
     const b = document.createElement('button'); b.textContent = a; b.addEventListener('click', () => combatAction(a.toLowerCase())); el.actions.appendChild(b);
   });
 }
@@ -790,13 +905,26 @@ function combatAction(action) {
   if (action === 'withdraw') { state.mode = 'explore'; state.encounter = null; setExploreActions(); return; }
   if (action === 'assess') { el.encounter.textContent = `${state.encounter.name} HP ${Math.max(0, state.encounter.hpNow)} Poise ${Math.max(0, state.encounter.poiseNow)}`; enemyTurn(1); return; }
   if (action === 'guard') { state.player.stamina = clamp(state.player.stamina + 8, 0, 100); enemyTurn(0.6); return; }
+  if (action === 'dodge') { state.player.stamina = clamp(state.player.stamina - 6, 0, 100); enemyTurn(0.35); return; }
+  if (action === 'power strike') {
+    if (state.player.skillCooldowns.powerStrike > 0 || state.player.mana < 12) {
+      addLog('Power Strike is unavailable.');
+      enemyTurn(1);
+      return;
+    }
+    state.player.mana = clamp(state.player.mana - 12, 0, 60);
+    state.player.skillCooldowns.powerStrike = 3;
+  }
   animatePlayerAttack(state.encounter.uid);
-  const dmg = totalStat('damage') + state.player.stats.strength * 2 + rand(4, 10);
+  const dmgBase = totalStat('damage') + state.player.stats.strength * 2 + rand(4, 10);
+  const dmg = action === 'power strike' ? Math.floor(dmgBase * 1.65) : dmgBase;
   if (Math.random() < (0.58 + totalStat('crit') * 0.01)) state.encounter.hpNow -= Math.floor(dmg * 1.5);
   else state.encounter.hpNow -= dmg;
   enemyTurn(1);
   if (state.encounter.hpNow <= 0) {
     addLog(`Defeated ${state.encounter.name}.`);
+    if (state.encounter.isElite || state.encounter.isBoss) progressQuest('hunt-elite', 1);
+    if (state.encounter.isBoss) state.dungeon.objectiveBossDefeated = true;
     grantXp((state.encounter.tier || 1) * 24 + rand(8, 18));
     const loot = rollLoot(state.encounter);
     if (loot) {
@@ -809,6 +937,7 @@ function combatAction(action) {
     state.encounter = null;
     state.mode = 'explore';
     setExploreActions();
+    updateQuestTracker();
   }
 }
 
@@ -846,6 +975,8 @@ function slotLabel(slot) {
 
 function enemyTurn(mult) {
   if (!state.encounter) return;
+  state.player.skillCooldowns.powerStrike = Math.max(0, state.player.skillCooldowns.powerStrike - 1);
+  state.encounter.intent = Math.random() > 0.6 ? 'Heavy Blow' : 'Quick Slash';
   const fatiguePenalty = 1 + state.player.fatigue / 220;
   const hit = Math.max(1, Math.floor((state.encounter.attack + rand(0, 7)) * mult * fatiguePenalty - totalStat('defense') * 0.35));
   animatePlayerHurt();
@@ -945,6 +1076,7 @@ function init() {
   renderCharacterScreen();
   renderItemDetails();
   updateHud();
+  updateQuestTracker();
   renderMapChunk();
   bindMapTap();
   bindTabs();
@@ -971,6 +1103,7 @@ function init() {
         renderItemDetails();
         updateHud();
         renderMapChunk();
+        updateQuestTracker();
         if (state.player.unspentAttr > 0) showLevelUpPanel();
       }
     } catch (_) {
