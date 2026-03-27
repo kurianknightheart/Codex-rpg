@@ -81,6 +81,16 @@ const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 const SAVE_KEY = 'ashen_marches_save_v1';
 
 function knightSvg(weaponHue = 24, armorHue = 220, trimHue = 45) {
+  let plateDots = '';
+  for (let y = 64; y <= 126; y += 7) {
+    for (let x = 43; x <= 77; x += 4) {
+      plateDots += `<circle cx='${x}' cy='${y}' r='0.75' fill='hsl(${armorHue} 22% 44%)'/>`;
+    }
+  }
+  let runeMarks = '';
+  for (let i = 0; i < 10; i += 1) {
+    runeMarks += `<path d='M${44 + i * 4} 62 L${46 + i * 4} 58 L${48 + i * 4} 62' stroke='hsl(${trimHue} 70% 66%)' stroke-width='0.9' fill='none'/>`;
+  }
   return `<svg viewBox='0 0 120 160' xmlns='http://www.w3.org/2000/svg'>
     <defs>
       <linearGradient id='armorGrad' x1='0' y1='0' x2='0' y2='1'>
@@ -104,12 +114,14 @@ function knightSvg(weaponHue = 24, armorHue = 220, trimHue = 45) {
       <rect x='37' y='60' width='46' height='56' rx='14' fill='url(#armorGrad)'/>
       <path d='M44 66 L76 66 L73 108 L47 108 Z' fill='hsl(${trimHue} 58% 38%)' opacity='.8'/>
       <path d='M46 72 L74 72 M46 80 L74 80 M46 88 L74 88 M46 96 L74 96' stroke='hsl(${trimHue} 62% 62%)' stroke-width='1'/>
-      <rect x='29' y='68' width='10' height='40' rx='4' fill='hsl(${armorHue} 24% 40%)'/>
-      <rect x='81' y='68' width='10' height='40' rx='4' fill='hsl(${armorHue} 24% 40%)'/>
-      <rect x='47' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/>
-      <rect x='61' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/>
-      <rect x='45' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 25%)'/>
-      <rect x='59' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 25%)'/>
+      ${runeMarks}
+      ${plateDots}
+      <g class='limb arm-left'><rect x='29' y='68' width='10' height='40' rx='4' fill='hsl(${armorHue} 24% 40%)'/></g>
+      <g class='limb arm-right'><rect x='81' y='68' width='10' height='40' rx='4' fill='hsl(${armorHue} 24% 40%)'/></g>
+      <g class='limb leg-left'><rect x='47' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/></g>
+      <g class='limb leg-right'><rect x='61' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/></g>
+      <g class='limb leg-left'><rect x='45' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 25%)'/></g>
+      <g class='limb leg-right'><rect x='59' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 25%)'/></g>
       <path d='M86 43 L92 101 L83 102 L78 46 Z' fill='hsl(${weaponHue} 58% 70%)'/>
       <rect x='74' y='81' width='24' height='6' rx='2' transform='rotate(10 86 84)' fill='hsl(${weaponHue} 48% 28%)'/>
       <circle cx='54' cy='44' r='2.1' fill='#1d171d'/>
