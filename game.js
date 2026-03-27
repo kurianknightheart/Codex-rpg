@@ -291,9 +291,8 @@ function featureForTile(x, y, biome) {
 
 function renderPlayer() {
   if (!el.player.innerHTML.trim()) applyKnight();
-  const center = iso(VIEW_RADIUS, VIEW_RADIUS);
-  el.player.style.left = `${center.x + 38}px`;
-  el.player.style.top = `${center.y + 26}px`;
+  el.player.style.left = `${Math.floor(el.world.clientWidth / 2)}px`;
+  el.player.style.top = `${Math.floor(el.world.clientHeight / 2)}px`;
 }
 
 function iconSvg(item) {
@@ -561,13 +560,21 @@ function calculationSnapshot() {
 }
 
 function updateHud() {
-  el.coreStats.innerHTML = '';
-  Object.entries(state.player.stats).forEach(([k, v]) => {
-    const d = document.createElement('div'); d.className = 'pill'; d.textContent = `${k.slice(0,3).toUpperCase()} ${derivedAttr(k)}`; el.coreStats.appendChild(d);
-  });
-  el.resourceBars.innerHTML = '';
   const calc = calculationSnapshot();
-  [['LVL', state.player.level], ['XP', `${state.player.xp}/${state.player.xpToNext}`], ['HP', calc.hp], ['STM', state.player.stamina], ['MANA', state.player.mana], ['DEF', calc.defense], ['FTG', calc.fatigue], ['CD', state.player.skillCooldowns.powerStrike], ['DUST', state.player.materials.arcaneDust]].forEach(([k, v]) => {
+  const hpMax = 120 + totalStat('hpIncrease');
+  const manaMax = 60;
+  el.coreStats.innerHTML = `
+    <div class="resource-bar">
+      <div class="resource-label">HP ${Math.round(state.player.hp)}/${Math.round(hpMax)}</div>
+      <div class="resource-track hp"><span style="width:${clamp((state.player.hp / hpMax) * 100, 0, 100)}%"></span></div>
+    </div>
+    <div class="resource-bar">
+      <div class="resource-label">MANA ${Math.round(state.player.mana)}/${manaMax}</div>
+      <div class="resource-track mana"><span style="width:${clamp((state.player.mana / manaMax) * 100, 0, 100)}%"></span></div>
+    </div>
+  `;
+  el.resourceBars.innerHTML = '';
+  [['ATK', calc.damage], ['DEF', calc.defense], ['FTG', calc.fatigue], ['STM', state.player.stamina]].forEach(([k, v]) => {
     const d = document.createElement('div');
     d.className = 'pill';
     d.textContent = `${k} ${typeof v === 'number' ? Math.round(v) : v}`;
