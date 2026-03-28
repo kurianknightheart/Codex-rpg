@@ -21,8 +21,25 @@
     </header>
 
     <section id="screen-map" class="screen active">
-      <div class="world" id="world">
-        <div class="player" id="player"></div>
+      <div class="world-wrap">
+        <div class="world" id="world">
+          <div class="player" id="player"></div>
+        </div>
+        <div id="combatOverlay" class="combat-overlay hidden" aria-live="polite">
+          <div class="combat-stage">
+            <div class="combat-lane left" id="combatPlayerLane">
+              <div class="combat-name">Knight Errant</div>
+              <div id="combatPlayerSprite" class="combat-sprite player-side"></div>
+              <div id="combatPlayerDamage" class="damage-layer"></div>
+            </div>
+            <div class="combat-vs">VS</div>
+            <div class="combat-lane right" id="combatMonsterLane">
+              <div id="combatMonsterName" class="combat-name">Monster</div>
+              <div id="combatMonsterSprite" class="combat-sprite monster-side"></div>
+              <div id="combatMonsterDamage" class="damage-layer"></div>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="controls-row">
         <div id="encounterPanel" class="encounter">Tap any nearby tile to move there.</div>

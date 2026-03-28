@@ -4,6 +4,7 @@ const SLOT_ORDER = ['weapon', 'helmet', 'offhand', 'armor', 'belt', 'leggings', 
 
 const state = {
   mode: 'explore',
+  combatLock: false,
   day: 1,
   stepMs: 75,
   lastStep: 0,
@@ -29,6 +30,12 @@ const state = {
 const el = {
   world: document.getElementById('world'),
   player: document.getElementById('player'),
+  combatOverlay: document.getElementById('combatOverlay'),
+  combatPlayerSprite: document.getElementById('combatPlayerSprite'),
+  combatMonsterSprite: document.getElementById('combatMonsterSprite'),
+  combatMonsterName: document.getElementById('combatMonsterName'),
+  combatPlayerDamage: document.getElementById('combatPlayerDamage'),
+  combatMonsterDamage: document.getElementById('combatMonsterDamage'),
   coreStats: document.getElementById('coreStats'),
   resourceBars: document.getElementById('resourceBars'),
   encounter: document.getElementById('encounterPanel'),
@@ -302,17 +309,33 @@ function generateBestiary() {
   state.bestiary = names.map((name, i) => ({ name, tier: 1 + Math.floor(i / 7), hp: 45 + i * 6, attack: 9 + i, poise: 30 + i * 3, evasion: 0.05 + i * 0.005, hue: (i * 17) % 360 }));
 }
 
+function monsterVariantId(name) {
+  let total = 0;
+  for (let i = 0; i < name.length; i += 1) total += name.charCodeAt(i);
+  return total % 15;
+}
+
 function monsterSvg(name, h) {
-  if (name.includes('Spider')) {
-    return `<svg viewBox='0 0 60 60'><ellipse cx='30' cy='33' rx='14' ry='11' fill='hsl(${h} 45% 30%)'/><circle cx='30' cy='22' r='8' fill='hsl(${h} 55% 38%)'/><path d='M10 35 L22 30 M50 35 L38 30 M10 25 L22 27 M50 25 L38 27' stroke='hsl(${h} 45% 55%)' stroke-width='3'/></svg>`;
-  }
-  if (name.includes('Wolf') || name.includes('Hound')) {
-    return `<svg viewBox='0 0 60 60'><path d='M10 40 L20 25 L40 25 L50 40 Z' fill='hsl(${h} 45% 33%)'/><path d='M20 25 L24 14 L30 22 L36 14 L40 25' fill='hsl(${h} 60% 40%)'/></svg>`;
-  }
-  if (name.includes('Harpy') || name.includes('Crow')) {
-    return `<svg viewBox='0 0 60 60'><path d='M8 34 Q30 10 52 34 Q30 28 8 34 Z' fill='hsl(${h} 40% 35%)'/><circle cx='30' cy='35' r='8' fill='hsl(${h} 55% 45%)'/></svg>`;
-  }
-  return `<svg viewBox='0 0 60 60'><ellipse cx='30' cy='33' rx='20' ry='16' fill='hsl(${h} 45% 34%)'/><circle cx='22' cy='27' r='5' fill='hsl(${h} 70% 56%)'/><circle cx='38' cy='27' r='5' fill='hsl(${h} 70% 56%)'/></svg>`;
+  const v = monsterVariantId(name);
+  const shades = [`hsl(${h} 52% 28%)`, `hsl(${h} 58% 38%)`, `hsl(${(h + 24) % 360} 68% 62%)`];
+  const variants = [
+    `<svg viewBox='0 0 60 60'><ellipse cx='30' cy='33' rx='18' ry='14' fill='${shades[0]}'/><circle cx='30' cy='20' r='8' fill='${shades[1]}'/><path d='M10 34 L22 30 M50 34 L38 30 M13 24 L23 26 M47 24 L37 26' stroke='${shades[2]}' stroke-width='3'/></svg>`,
+    `<svg viewBox='0 0 60 60'><path d='M8 39 L20 22 L42 22 L52 39 Z' fill='${shades[0]}'/><path d='M20 22 L24 12 L30 20 L36 12 L42 22' fill='${shades[1]}'/><circle cx='29' cy='30' r='2' fill='${shades[2]}'/></svg>`,
+    `<svg viewBox='0 0 60 60'><path d='M7 34 Q30 9 53 34 Q30 29 7 34 Z' fill='${shades[1]}'/><ellipse cx='30' cy='37' rx='10' ry='8' fill='${shades[0]}'/><path d='M18 29 Q30 20 42 29' stroke='${shades[2]}' stroke-width='2' fill='none'/></svg>`,
+    `<svg viewBox='0 0 60 60'><rect x='14' y='20' width='32' height='24' rx='8' fill='${shades[0]}'/><path d='M16 22 L30 8 L44 22' fill='${shades[1]}'/><circle cx='24' cy='32' r='3' fill='${shades[2]}'/><circle cx='36' cy='32' r='3' fill='${shades[2]}'/></svg>`,
+    `<svg viewBox='0 0 60 60'><polygon points='30,8 48,18 43,42 17,42 12,18' fill='${shades[0]}'/><path d='M21 24 L39 24 L35 36 L25 36 Z' fill='${shades[1]}'/><path d='M23 16 Q30 12 37 16' stroke='${shades[2]}' stroke-width='2' fill='none'/></svg>`,
+    `<svg viewBox='0 0 60 60'><ellipse cx='30' cy='28' rx='17' ry='13' fill='${shades[1]}'/><rect x='18' y='33' width='24' height='14' rx='5' fill='${shades[0]}'/><path d='M18 42 L10 48 M42 42 L50 48' stroke='${shades[2]}' stroke-width='3'/></svg>`,
+    `<svg viewBox='0 0 60 60'><path d='M30 10 L44 24 L38 46 L22 46 L16 24 Z' fill='${shades[0]}'/><circle cx='24' cy='28' r='3' fill='${shades[2]}'/><circle cx='36' cy='28' r='3' fill='${shades[2]}'/><path d='M24 38 Q30 43 36 38' stroke='${shades[1]}' stroke-width='2' fill='none'/></svg>`,
+    `<svg viewBox='0 0 60 60'><ellipse cx='30' cy='34' rx='20' ry='12' fill='${shades[0]}'/><path d='M10 34 L20 18 L30 28 L40 18 L50 34' fill='${shades[1]}'/><rect x='26' y='28' width='8' height='15' rx='3' fill='${shades[2]}'/></svg>`,
+    `<svg viewBox='0 0 60 60'><path d='M12 41 L18 17 L30 11 L42 17 L48 41 Z' fill='${shades[0]}'/><path d='M20 32 L30 21 L40 32' stroke='${shades[2]}' stroke-width='3' fill='none'/><rect x='24' y='33' width='12' height='9' rx='3' fill='${shades[1]}'/></svg>`,
+    `<svg viewBox='0 0 60 60'><circle cx='30' cy='29' r='16' fill='${shades[1]}'/><path d='M16 29 L8 39 M44 29 L52 39 M30 45 L30 53' stroke='${shades[2]}' stroke-width='3'/><ellipse cx='30' cy='29' rx='9' ry='6' fill='${shades[0]}'/></svg>`,
+    `<svg viewBox='0 0 60 60'><rect x='15' y='17' width='30' height='30' rx='12' fill='${shades[0]}'/><path d='M15 29 L5 23 M45 29 L55 23' stroke='${shades[2]}' stroke-width='3'/><path d='M24 37 L36 37' stroke='${shades[1]}' stroke-width='3'/></svg>`,
+    `<svg viewBox='0 0 60 60'><polygon points='10,38 20,16 40,16 50,38 30,48' fill='${shades[1]}'/><path d='M18 30 L30 23 L42 30' stroke='${shades[2]}' stroke-width='2' fill='none'/><circle cx='30' cy='34' r='5' fill='${shades[0]}'/></svg>`,
+    `<svg viewBox='0 0 60 60'><ellipse cx='30' cy='35' rx='19' ry='12' fill='${shades[0]}'/><path d='M13 35 Q30 16 47 35' stroke='${shades[2]}' stroke-width='3' fill='none'/><rect x='26' y='23' width='8' height='18' rx='4' fill='${shades[1]}'/></svg>`,
+    `<svg viewBox='0 0 60 60'><path d='M30 9 L46 25 L39 45 L21 45 L14 25 Z' fill='${shades[0]}'/><path d='M24 22 L30 17 L36 22' stroke='${shades[2]}' stroke-width='2' fill='none'/><ellipse cx='30' cy='33' rx='8' ry='6' fill='${shades[1]}'/></svg>`,
+    `<svg viewBox='0 0 60 60'><path d='M8 40 L18 20 L42 20 L52 40 L30 50 Z' fill='${shades[1]}'/><path d='M20 21 L20 10 M40 21 L40 10' stroke='${shades[2]}' stroke-width='3'/><circle cx='30' cy='33' r='7' fill='${shades[0]}'/></svg>`,
+  ];
+  return variants[v];
 }
 
 function respawnMonsters() {
@@ -343,7 +366,8 @@ function drawMonsters() {
   state.monsters.forEach((m) => {
     if (Math.abs(m.x - px) > VIEW_RADIUS || Math.abs(m.y - py) > VIEW_RADIUS) return;
     const node = document.createElement('div');
-    node.className = 'monster';
+    const variant = monsterVariantId(m.name);
+    node.className = `monster variant-${variant}`;
     node.innerHTML = monsterSvg(m.name, m.hue);
     const p = iso(m.x - px + VIEW_RADIUS, m.y - py + VIEW_RADIUS);
     node.style.left = `${p.x + 38}px`;
@@ -376,6 +400,60 @@ function bindMapInteraction() {
     state.destination = { x, y };
     el.encounter.textContent = `Travelling to (${x}, ${y}) through ${biomeAt(x, y)}.`;
   });
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function showCombatOverlay(monster) {
+  el.combatOverlay.classList.remove('hidden');
+  el.combatPlayerSprite.innerHTML = knightSvg(
+    state.player.equipment.weapon?.appearance?.hue ?? 24,
+    state.player.equipment.armor?.appearance?.hue ?? 220,
+    state.player.equipment.necklace?.appearance?.hue ?? 45,
+  );
+  el.combatMonsterSprite.innerHTML = monsterSvg(monster.name, monster.hue);
+  el.combatMonsterName.textContent = monster.name;
+}
+
+function hideCombatOverlay() {
+  el.combatOverlay.classList.add('hidden');
+  el.combatPlayerDamage.innerHTML = '';
+  el.combatMonsterDamage.innerHTML = '';
+}
+
+function popDamage(targetEl, amount, isCrit = false, isHeal = false) {
+  const pop = document.createElement('div');
+  pop.className = `damage-pop${isCrit ? ' crit' : ''}${isHeal ? ' heal' : ''}`;
+  pop.textContent = isHeal ? `+${amount}` : `-${amount}`;
+  pop.style.left = `${40 + rand(12, 50)}%`;
+  pop.style.top = `${30 + rand(8, 55)}%`;
+  targetEl.appendChild(pop);
+  setTimeout(() => pop.remove(), 900);
+}
+
+async function animateAction(kind, actor = 'player') {
+  const actorEl = actor === 'player' ? el.combatPlayerSprite : el.combatMonsterSprite;
+  const targetEl = actor === 'player' ? el.combatMonsterSprite : el.combatPlayerSprite;
+  if (kind === 'guard') {
+    actorEl.classList.add('guarding');
+    await wait(420);
+    actorEl.classList.remove('guarding');
+    return;
+  }
+  if (kind === 'assess') {
+    actorEl.classList.add('assessing');
+    await wait(360);
+    actorEl.classList.remove('assessing');
+    return;
+  }
+  actorEl.classList.add('attacking');
+  await wait(200);
+  targetEl.classList.add('hit');
+  await wait(220);
+  actorEl.classList.remove('attacking');
+  targetEl.classList.remove('hit');
 }
 
 function setExploreActions() {
@@ -489,12 +567,17 @@ function checkEncounter() {
   const travel = biomeTravelProfile(biome);
   const m = state.monsters.find((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= 1);
   if (!m) {
+    hideCombatOverlay();
+    state.mode = 'explore';
+    state.encounter = null;
     el.encounter.textContent = `Exploring ${MAP_SIZE}x${MAP_SIZE}. Biome: ${biome}. Terrain load ${travel.stamina.toFixed(2)}x.`;
     setExploreActions();
     return;
   }
   state.encounter = m;
   state.mode = 'combat';
+  state.combatLock = false;
+  showCombatOverlay(m);
   el.encounter.textContent = `${m.name} confronts you.`;
   el.actions.innerHTML = '';
   ['Strike', 'Guard', 'Assess', 'Withdraw'].forEach((a) => {
@@ -502,15 +585,40 @@ function checkEncounter() {
   });
 }
 
-function combatAction(action) {
-  if (!state.encounter) return;
-  if (action === 'withdraw') { state.mode = 'explore'; state.encounter = null; setExploreActions(); return; }
-  if (action === 'assess') { el.encounter.textContent = `${state.encounter.name} HP ${Math.max(0, state.encounter.hpNow)} Poise ${Math.max(0, state.encounter.poiseNow)}`; enemyTurn(1); return; }
-  if (action === 'guard') { state.player.stamina = clamp(state.player.stamina + 8, 0, 100); enemyTurn(0.6); return; }
+async function combatAction(action) {
+  if (!state.encounter || state.combatLock) return;
+  state.combatLock = true;
+  if (action === 'withdraw') {
+    state.mode = 'explore';
+    state.encounter = null;
+    hideCombatOverlay();
+    setExploreActions();
+    state.combatLock = false;
+    el.encounter.textContent = 'You withdrew and returned to exploration.';
+    return;
+  }
+  if (action === 'assess') {
+    await animateAction('assess', 'player');
+    el.encounter.textContent = `${state.encounter.name} HP ${Math.max(0, state.encounter.hpNow)} Poise ${Math.max(0, state.encounter.poiseNow)}`;
+    await enemyTurn(1, 'assess');
+    state.combatLock = false;
+    return;
+  }
+  if (action === 'guard') {
+    state.player.stamina = clamp(state.player.stamina + 8, 0, 100);
+    popDamage(el.combatPlayerDamage, 8, false, true);
+    await animateAction('guard', 'player');
+    await enemyTurn(0.6, 'guard');
+    state.combatLock = false;
+    return;
+  }
   const dmg = totalStat('damage') + state.player.stats.strength * 2 + rand(4, 10);
-  if (Math.random() < (0.58 + totalStat('crit') * 0.01)) state.encounter.hpNow -= Math.floor(dmg * 1.5);
-  else state.encounter.hpNow -= dmg;
-  enemyTurn(1);
+  const crit = Math.random() < (0.58 + totalStat('crit') * 0.01);
+  const dealt = crit ? Math.floor(dmg * 1.5) : dmg;
+  state.encounter.hpNow -= dealt;
+  await animateAction('strike', 'player');
+  popDamage(el.combatMonsterDamage, dealt, crit, false);
+  el.encounter.textContent = crit ? `Critical hit for ${dealt}!` : `You struck ${state.encounter.name} for ${dealt}.`;
   if (state.encounter.hpNow <= 0) {
     addLog(`Defeated ${state.encounter.name}.`);
     const loot = rollLoot(state.encounter);
@@ -522,8 +630,15 @@ function combatAction(action) {
     state.monsters = state.monsters.filter((m) => m.uid !== state.encounter.uid);
     state.encounter = null;
     state.mode = 'explore';
+    hideCombatOverlay();
     setExploreActions();
+    updateHud();
+    renderMapChunk();
+    state.combatLock = false;
+    return;
   }
+  await enemyTurn(1, 'strike');
+  state.combatLock = false;
 }
 
 function rollLoot(monster) {
@@ -536,11 +651,18 @@ function rollLoot(monster) {
   return null;
 }
 
-function enemyTurn(mult) {
+async function enemyTurn(mult, responseAction = 'strike') {
   if (!state.encounter) return;
+  if (responseAction === 'assess') await animateAction('assess', 'monster');
+  else await animateAction('strike', 'monster');
   const fatiguePenalty = 1 + state.player.fatigue / 220;
   const hit = Math.max(1, Math.floor((state.encounter.attack + rand(0, 7)) * mult * fatiguePenalty - totalStat('defense') * 0.35));
   state.player.hp -= hit;
+  const crit = mult >= 1 && Math.random() < 0.15;
+  popDamage(el.combatPlayerDamage, crit ? Math.floor(hit * 1.35) : hit, crit, false);
+  if (crit) state.player.hp -= Math.floor(hit * 0.35);
+  if (responseAction === 'guard') el.encounter.textContent = `You brace and absorb ${hit} damage.`;
+  else el.encounter.textContent = `${state.encounter.name} hits you for ${hit}${crit ? ' (CRIT)' : ''}.`;
   if (state.player.hp <= 0) { addLog('You fell in battle. Refresh to restart.'); }
   updateHud();
 }
