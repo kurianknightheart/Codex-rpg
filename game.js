@@ -1,4 +1,4 @@
-const MAP_SIZE = 1024;
+const MAP_SIZE = 2048;
 const VIEW_RADIUS = 11;
 const SAVE_VERSION = 2;
 const CONTENT = {
@@ -14,7 +14,7 @@ const CONTENT = {
   },
   gems: ['Ruby', 'Sapphire', 'Topaz', 'Emerald'],
 };
-const SLOT_ORDER = ['weapon', 'helmet', 'chestArmor', 'cape', 'offhand', 'gloves', 'boots', 'necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'];
+const SLOT_ORDER = ['weapon', 'helmet', 'chestArmor', 'cape', 'offhand', 'gloves', 'leggings', 'boots', 'necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'];
 const DEFENSE_SLOTS = ['helmet', 'chestArmor', 'armor', 'cape', 'offhand', 'belt', 'leggings', 'boots', 'gloves'];
 const SLOT_LABELS = {
   weapon: 'Weapon',
@@ -121,15 +121,23 @@ function getKnightAppearance() {
   const eq = state.player.equipment || {};
   return {
     weaponHue: eq.weapon?.appearance?.hue ?? 24,
-    armorHue: eq.chestArmor?.appearance?.hue ?? eq.armor?.appearance?.hue ?? 220,
+    armorHue: eq.chestArmor?.appearance?.hue ?? eq.armor?.appearance?.hue ?? null,
     trimHue: eq.necklace?.appearance?.hue ?? eq.ring1?.appearance?.hue ?? 45,
-    clothHue: eq.cape?.appearance?.hue ?? eq.gloves?.appearance?.hue ?? 280,
-    leatherHue: eq.boots?.appearance?.hue ?? eq.belt?.appearance?.hue ?? 30,
+    clothHue: eq.chestArmor?.appearance?.hue ?? eq.cape?.appearance?.hue ?? eq.gloves?.appearance?.hue ?? 280,
+    leatherHue: eq.boots?.appearance?.hue ?? eq.leggings?.appearance?.hue ?? 30,
     helmHue: eq.helmet?.appearance?.hue ?? 210,
     eyeHue: 28,
+    hasWeapon: Boolean(eq.weapon),
     hasHelmet: Boolean(eq.helmet),
     hasCape: Boolean(eq.cape),
     hasOffhand: Boolean(eq.offhand),
+    hasChest: Boolean(eq.chestArmor || eq.armor),
+    hasGloves: Boolean(eq.gloves),
+    hasBoots: Boolean(eq.boots),
+    hasLeggings: Boolean(eq.leggings),
+    hasNecklace: Boolean(eq.necklace),
+    hasRing1: Boolean(eq.ring1),
+    hasRing2: Boolean(eq.ring2),
   };
 }
 
@@ -141,25 +149,31 @@ function knightSvg({
   leatherHue = 30,
   helmHue = 210,
   eyeHue = 28,
+  hasWeapon = false,
   hasHelmet = false,
   hasCape = false,
   hasOffhand = false,
+  hasChest = false,
+  hasGloves = false,
+  hasBoots = false,
+  hasLeggings = false,
+  hasNecklace = false,
+  hasRing1 = false,
+  hasRing2 = false,
 } = {}) {
-  let plateDots = '';
-  for (let y = 64; y <= 126; y += 7) {
-    for (let x = 43; x <= 77; x += 4) {
-      plateDots += `<circle cx='${x}' cy='${y}' r='0.75' fill='hsl(${armorHue} 22% 44%)'/>`;
-    }
-  }
-  let runeMarks = '';
-  for (let i = 0; i < 10; i += 1) {
-    runeMarks += `<path d='M${44 + i * 4} 62 L${46 + i * 4} 58 L${48 + i * 4} 62' stroke='hsl(${trimHue} 70% 66%)' stroke-width='0.9' fill='none'/>`;
-  }
   return `<svg viewBox='0 0 120 160' xmlns='http://www.w3.org/2000/svg'>
     <defs>
+      <linearGradient id='skinGrad' x1='0' y1='0' x2='0' y2='1'>
+        <stop offset='0%' stop-color='hsl(26 38% 90%)'/>
+        <stop offset='100%' stop-color='hsl(26 33% 82%)'/>
+      </linearGradient>
+      <linearGradient id='clothGrad' x1='0' y1='0' x2='0' y2='1'>
+        <stop offset='0%' stop-color='hsl(${clothHue} 28% 54%)'/>
+        <stop offset='100%' stop-color='hsl(${clothHue} 32% 24%)'/>
+      </linearGradient>
       <linearGradient id='armorGrad' x1='0' y1='0' x2='0' y2='1'>
-        <stop offset='0%' stop-color='hsl(${armorHue} 30% 62%)'/>
-        <stop offset='100%' stop-color='hsl(${armorHue} 34% 28%)'/>
+        <stop offset='0%' stop-color='hsl(${armorHue} 34% 64%)'/>
+        <stop offset='100%' stop-color='hsl(${armorHue} 28% 30%)'/>
       </linearGradient>
       <linearGradient id='trimGrad' x1='0' y1='0' x2='1' y2='1'>
         <stop offset='0%' stop-color='hsl(${trimHue} 72% 68%)'/>
@@ -171,36 +185,45 @@ function knightSvg({
       </radialGradient>
     </defs>
     <ellipse cx='60' cy='86' rx='42' ry='58' fill='url(#aura)'/>
-    <g stroke='#18131f' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'>
-      <path d='M42 150 L60 92 L78 150 Z' fill='url(#trimGrad)'/>
-      <ellipse cx='60' cy='43' rx='18' ry='16' fill='hsl(30 24% 78%)'/>
-      <path d='M45 34 Q60 17 75 34 L75 39 Q60 26 45 39 Z' fill='hsl(15 8% 12%)'/>
-      <path d='M49 52 Q60 57 71 52' stroke='hsl(22 34% 36%)' stroke-width='1.6' fill='none'/>
-      <ellipse cx='54' cy='44' rx='3.2' ry='2.4' fill='hsl(${eyeHue} 42% 42%)'/>
-      <ellipse cx='66' cy='44' rx='3.2' ry='2.4' fill='hsl(${eyeHue} 42% 42%)'/>
-      <circle cx='54' cy='44' r='1.2' fill='#1c130f'/>
-      <circle cx='66' cy='44' r='1.2' fill='#1c130f'/>
-      <path d='M52 39 L56 38 M64 38 L68 39' stroke='hsl(15 10% 15%)' stroke-width='1.2'/>
-      <path d='M40 46 Q60 18 80 46 L78 58 L42 58 Z' fill='url(#armorGrad)'/>
-      <rect x='37' y='60' width='46' height='56' rx='14' fill='url(#armorGrad)'/>
-      <path d='M44 66 L76 66 L73 108 L47 108 Z' fill='hsl(${trimHue} 58% 38%)' opacity='.8'/>
-      ${hasCape ? `<path d='M38 60 L29 134 L48 144 L50 62 Z' fill='hsl(${clothHue} 34% 28%)' opacity='.85'/>` : ''}
-      ${hasCape ? `<path d='M82 60 L70 144 L92 134 L84 62 Z' fill='hsl(${clothHue} 34% 28%)' opacity='.85'/>` : ''}
-      <path d='M46 72 L74 72 M46 80 L74 80 M46 88 L74 88 M46 96 L74 96' stroke='hsl(${trimHue} 62% 62%)' stroke-width='1'/>
-      ${runeMarks}
-      ${plateDots}
-      ${hasHelmet ? `<path d='M42 45 Q60 20 78 45 L75 58 L45 58 Z' fill='hsl(${helmHue} 28% 44%)'/>` : ''}
-      ${hasHelmet ? `<path d='M50 44 L70 44 L68 53 L52 53 Z' fill='hsl(${helmHue} 24% 20%)'/>` : ''}
-      <g class='limb arm-left'><rect x='29' y='68' width='10' height='40' rx='4' fill='hsl(${armorHue} 24% 40%)'/></g>
-      <g class='limb arm-right'><rect x='81' y='68' width='10' height='40' rx='4' fill='hsl(${armorHue} 24% 40%)'/></g>
-      <g class='limb leg-left'><rect x='47' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/><circle cx='53' cy='125' r='2' fill='hsl(${leatherHue} 26% 38%)'/></g>
-      <g class='limb leg-right'><rect x='61' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/><circle cx='67' cy='125' r='2' fill='hsl(${leatherHue} 26% 38%)'/></g>
-      <g class='limb leg-left'><rect x='45' y='132' width='16' height='10' rx='4' fill='hsl(${leatherHue} 26% 25%)'/></g>
-      <g class='limb leg-right'><rect x='59' y='132' width='16' height='10' rx='4' fill='hsl(${leatherHue} 26% 25%)'/></g>
-      <path d='M86 43 L92 101 L83 102 L78 46 Z' fill='hsl(${weaponHue} 58% 70%)'/>
-      <rect x='74' y='81' width='24' height='6' rx='2' transform='rotate(10 86 84)' fill='hsl(${weaponHue} 48% 28%)'/>
-      ${hasOffhand ? `<ellipse cx='24' cy='90' rx='10' ry='14' fill='hsl(${trimHue} 30% 35%)'/>` : ''}
-      ${hasOffhand ? `<path d='M18 90 Q24 78 30 90 Q24 102 18 90 Z' fill='hsl(${armorHue} 20% 58%)'/>` : ''}
+    <g stroke='#171218' stroke-width='1.6' stroke-linejoin='round' stroke-linecap='round'>
+      ${hasCape ? `<path d='M37 62 L25 146 L48 152 L50 62 Z' fill='hsl(${clothHue} 34% 26%)' opacity='.82'/>` : ''}
+      ${hasCape ? `<path d='M83 62 L70 152 L95 146 L84 62 Z' fill='hsl(${clothHue} 34% 26%)' opacity='.82'/>` : ''}
+      <ellipse cx='60' cy='43' rx='17' ry='16' fill='url(#skinGrad)'/>
+      <path d='M44 36 Q60 13 76 36 L76 42 Q60 28 44 42 Z' fill='hsl(47 65% 52%)'/>
+      <path d='M50 38 L55 36 M65 36 L70 38' stroke='hsl(40 48% 35%)' stroke-width='1.1'/>
+      <ellipse cx='54' cy='44' rx='2.6' ry='2' fill='hsl(${eyeHue} 42% 40%)'/>
+      <ellipse cx='66' cy='44' rx='2.6' ry='2' fill='hsl(${eyeHue} 42% 40%)'/>
+      <circle cx='54' cy='44' r='1' fill='#201811'/>
+      <circle cx='66' cy='44' r='1' fill='#201811'/>
+      <path d='M56 52 Q60 54 64 52' stroke='hsl(20 35% 44%)' stroke-width='1.1'/>
+      <ellipse cx='60' cy='84' rx='15' ry='24' fill='url(#skinGrad)'/>
+      <g class='limb arm-left'><rect x='30' y='66' width='10' height='42' rx='5' fill='url(#skinGrad)'/></g>
+      <g class='limb arm-right'><rect x='80' y='66' width='10' height='42' rx='5' fill='url(#skinGrad)'/></g>
+      <g class='limb leg-left'><rect x='49' y='106' width='10' height='34' rx='5' fill='url(#skinGrad)'/></g>
+      <g class='limb leg-right'><rect x='61' y='106' width='10' height='34' rx='5' fill='url(#skinGrad)'/></g>
+      ${hasHelmet ? `<path d='M43 44 Q60 19 77 44 L74 57 L46 57 Z' fill='hsl(${helmHue} 28% 46%)'/>` : ''}
+      ${hasHelmet ? `<path d='M50 44 L70 44 L67 52 L53 52 Z' fill='hsl(${helmHue} 24% 22%)'/>` : ''}
+      ${hasNecklace ? `<path d='M53 57 Q60 63 67 57' stroke='hsl(${trimHue} 72% 64%)' stroke-width='1.5'/>` : ''}
+      ${hasNecklace ? `<circle cx='60' cy='62' r='1.7' fill='hsl(${trimHue} 70% 56%)'/>` : ''}
+      <path d='M42 58 Q60 50 78 58' stroke='hsl(${trimHue} 46% 56%)' stroke-width='1.2'/>
+      ${hasChest ? `<path d='M43 60 L77 60 L74 92 L46 92 Z' fill='url(#clothGrad)'/>` : ''}
+      ${hasChest ? `<path d='M50 92 L70 92 L73 130 L47 130 Z' fill='hsl(${clothHue} 30% 32%)'/>` : ''}
+      ${hasChest ? `<path d='M50 60 L70 60 L74 104 L46 104 Z' fill='url(#armorGrad)'/>` : ''}
+      ${hasChest ? `<path d='M53 64 L67 64 M52 72 L68 72 M51 80 L69 80 M50 88 L70 88 M50 96 L70 96' stroke='hsl(${trimHue} 58% 66%)' stroke-width='1'/>` : ''}
+      ${hasGloves ? `<rect x='28' y='70' width='14' height='24' rx='6' fill='url(#armorGrad)'/>` : ''}
+      ${hasGloves ? `<rect x='78' y='70' width='14' height='24' rx='6' fill='url(#armorGrad)'/>` : ''}
+      ${hasGloves ? `<rect x='28' y='94' width='14' height='14' rx='6' fill='hsl(${armorHue ?? clothHue} 24% 26%)'/>` : ''}
+      ${hasGloves ? `<rect x='78' y='94' width='14' height='14' rx='6' fill='hsl(${armorHue ?? clothHue} 24% 26%)'/>` : ''}
+      ${hasLeggings ? `<rect x='47' y='108' width='14' height='22' rx='6' fill='hsl(${clothHue} 24% 38%)'/>` : ''}
+      ${hasLeggings ? `<rect x='59' y='108' width='14' height='22' rx='6' fill='hsl(${clothHue} 24% 38%)'/>` : ''}
+      ${hasBoots ? `<rect x='46' y='130' width='16' height='12' rx='5' fill='hsl(${leatherHue} 24% 24%)'/>` : ''}
+      ${hasBoots ? `<rect x='58' y='130' width='16' height='12' rx='5' fill='hsl(${leatherHue} 24% 24%)'/>` : ''}
+      ${hasWeapon ? `<path d='M87 45 L93 101 L84 102 L79 47 Z' fill='hsl(${weaponHue} 58% 70%)'/>` : ''}
+      ${hasWeapon ? `<rect x='75' y='81' width='24' height='6' rx='2' transform='rotate(10 86 84)' fill='hsl(${weaponHue} 48% 28%)'/>` : ''}
+      ${hasOffhand ? `<ellipse cx='25' cy='89' rx='10' ry='14' fill='hsl(${trimHue} 32% 34%)'/>` : ''}
+      ${hasOffhand ? `<path d='M19 89 Q25 77 31 89 Q25 102 19 89 Z' fill='hsl(${armorHue} 20% 58%)'/>` : ''}
+      ${hasRing1 ? `<circle cx='31' cy='101' r='1.5' fill='hsl(${trimHue} 72% 58%)'/>` : ''}
+      ${hasRing2 ? `<circle cx='89' cy='101' r='1.5' fill='hsl(${trimHue} 72% 58%)'/>` : ''}
     </g>
   </svg>`;
 }
@@ -370,6 +393,22 @@ function detailedWeaponSvg(kind, h, studs) {
   </svg>`;
 }
 
+function detailedArmorSvg(slot, h, studs, v1, v2, idNum) {
+  if (slot === 'helmet') {
+    return `<svg viewBox='0 0 40 40'><path d='M8 18 Q20 3 32 18 L30 31 L10 31 Z' fill='hsl(${h} 32% 46%)'/><path d='M13 18 L27 18 L25 26 L15 26 Z' fill='hsl(${h} 24% 22%)'/><path d='M20 6 L22 10 L20 14 L18 10 Z' fill='hsl(${h} 72% 72%)'/><path d='M11 22 L15 22 M25 22 L29 22' stroke='hsl(${h} 20% 60%)' stroke-width='1.1'/><path d='M12 30 L15 34 L25 34 L28 30' fill='hsl(${h} 20% 36%)'/><circle cx='16' cy='22' r='0.8'/><circle cx='24' cy='22' r='0.8'/><circle cx='20' cy='28' r='1.1'/><path d='M10 18 L8 20 M30 18 L32 20' stroke='hsl(${h} 18% 24%)' stroke-width='1'/><path d='M14 12 L26 12' stroke='hsl(${h} 68% 75%)' stroke-width='1'/>${studs}</svg>`;
+  }
+  if (slot === 'gloves') {
+    return `<svg viewBox='0 0 40 40'><rect x='8' y='16' width='10' height='16' rx='3' fill='hsl(${h} 30% 40%)'/><rect x='22' y='16' width='10' height='16' rx='3' fill='hsl(${h} 30% 40%)'/><rect x='10' y='12' width='3' height='7' rx='1' fill='hsl(${h} 32% 52%)'/><rect x='13' y='11' width='3' height='8' rx='1' fill='hsl(${h} 32% 52%)'/><rect x='24' y='12' width='3' height='7' rx='1' fill='hsl(${h} 32% 52%)'/><rect x='27' y='11' width='3' height='8' rx='1' fill='hsl(${h} 32% 52%)'/><path d='M9 26 L17 26 M23 26 L31 26' stroke='hsl(${h} 22% 22%)' stroke-width='1'/><circle cx='13' cy='29' r='0.8'/><circle cx='27' cy='29' r='0.8'/><path d='M8 20 L18 20 M22 20 L32 20' stroke='hsl(${h} 65% 72%)' stroke-width='1'/>${studs}</svg>`;
+  }
+  if (slot === 'boots') {
+    return `<svg viewBox='0 0 40 40'><path d='M8 12 L16 12 L16 25 L23 25 L23 30 L8 30 Z' fill='hsl(${h} 26% 34%)'/><path d='M24 12 L32 12 L32 25 L36 25 L36 30 L24 30 Z' fill='hsl(${h} 26% 34%)'/><rect x='10' y='14' width='4' height='10' fill='hsl(${h} 24% 44%)'/><rect x='26' y='14' width='4' height='10' fill='hsl(${h} 24% 44%)'/><path d='M8 30 L23 30 L23 33 L8 33 Z' fill='hsl(${h} 20% 18%)'/><path d='M24 30 L36 30 L36 33 L24 33 Z' fill='hsl(${h} 20% 18%)'/><circle cx='12' cy='18' r='0.7'/><circle cx='12' cy='21' r='0.7'/><circle cx='28' cy='18' r='0.7'/><circle cx='28' cy='21' r='0.7'/>${studs}</svg>`;
+  }
+  if (slot === 'leggings') {
+    return `<svg viewBox='0 0 40 40'><path d='M11 8 L29 8 L31 14 L26 33 L20 30 L14 33 L9 14 Z' fill='hsl(${h} 30% 40%)'/><path d='M20 8 L20 30' stroke='hsl(${h} 18% 24%)' stroke-width='1.2'/><path d='M13 14 L18 14 M22 14 L27 14' stroke='hsl(${h} 66% 70%)' stroke-width='1'/><path d='M13 19 L18 19 M22 19 L27 19' stroke='hsl(${h} 66% 70%)' stroke-width='1'/><path d='M14 25 L18 25 M22 25 L26 25' stroke='hsl(${h} 66% 70%)' stroke-width='1'/><circle cx='16' cy='30' r='1'/><circle cx='24' cy='30' r='1'/><path d='M14 33 L18 33 L18 35 L14 35 Z' fill='hsl(${h} 20% 22%)'/><path d='M22 33 L26 33 L26 35 L22 35 Z' fill='hsl(${h} 20% 22%)'/>${studs}</svg>`;
+  }
+  return `<svg viewBox='0 0 40 40'><path d='M8 9 L32 9 L30 34 L10 34 Z' fill='hsl(${h} 34% 45%)'/><path d='M14 9 L16 6 L24 6 L26 9' fill='hsl(${h} 50% 70%)'/><path d='M12 14 L28 14 M12 19 L28 19 M12 24 L28 24 M12 29 L28 29' stroke='hsl(${h} 22% 28%)' stroke-width='1'/><path d='M${v1} 12 L${v2} 30 L${32 - (idNum % 6)} 12' stroke='hsl(${h} 60% 74%)' stroke-width='1.2' fill='none'/><circle cx='14' cy='16' r='0.9'/><circle cx='20' cy='16' r='0.9'/><circle cx='26' cy='16' r='0.9'/><circle cx='14' cy='22' r='0.9'/><circle cx='20' cy='22' r='0.9'/><circle cx='26' cy='22' r='0.9'/>${studs}</svg>`;
+}
+
 function iconSvg(item) {
   const h = item.appearance.hue;
   const idNum = Number(String(item.id).replace(/\D/g, '')) || 1;
@@ -392,7 +431,7 @@ function iconSvg(item) {
     return detailedWeaponSvg(kind, h, studs);
   }
   if (DEFENSE_SLOTS.includes(item.slot)) {
-    return `<svg viewBox='0 0 40 40'><rect x='8' y='8' width='24' height='24' rx='7' fill='hsl(${h} 34% 45%)'/><path d='M${v1} 12 L${v2} 30 L${32 - (idNum % 6)} 12' stroke='hsl(${h} 50% 70%)' stroke-width='2' fill='none'/><rect x='13' y='13' width='14' height='14' rx='3' fill='hsl(${h} 24% 32%)'/><circle cx='16' cy='16' r='1'/><circle cx='20' cy='16' r='1'/><circle cx='24' cy='16' r='1'/><circle cx='16' cy='20' r='1'/><circle cx='20' cy='20' r='1'/><circle cx='24' cy='20' r='1'/><circle cx='16' cy='24' r='1'/><circle cx='20' cy='24' r='1'/><circle cx='24' cy='24' r='1'/></svg>`;
+    return detailedArmorSvg(item.slot, h, studs, v1, v2, idNum);
   }
   return `<svg viewBox='0 0 40 40'>${core}<circle cx='20' cy='20' r='${6 + (idNum % 4)}' fill='none' stroke='hsl(${h} 70% 76%)' stroke-width='1.6'/><circle cx='20' cy='20' r='2.5' fill='hsl(${h} 85% 85%)'/><circle cx='14' cy='14' r='1.2'/><circle cx='26' cy='14' r='1.2'/><circle cx='14' cy='26' r='1.2'/><circle cx='26' cy='26' r='1.2'/></svg>`;
 }
@@ -528,7 +567,7 @@ function renderEquipment() {
   el.equipment.innerHTML = '';
   const leftSlots = ['helmet', 'gloves', 'weapon', 'ring1', 'trinket1'];
   const rightSlots = ['necklace', 'chestArmor', 'offhand', 'ring2', 'trinket2'];
-  const bottomSlots = ['boots', 'cape'];
+  const bottomSlots = ['boots', 'leggings', 'cape'];
 
   const makeSlot = (slot) => {
     const it = state.player.equipment[slot];
@@ -572,6 +611,7 @@ function slotPlaceholderGlyph(slot) {
   if (slot === 'weapon') return '⚔';
   if (slot === 'offhand') return '🛡';
   if (slot === 'boots') return '⋈';
+  if (slot === 'leggings') return '∥';
   return '✧';
 }
 
