@@ -682,15 +682,139 @@ function generateBestiary() {
 
 function monsterSvg(name, h) {
   if (name.includes('Spider')) {
-    return `<svg viewBox='0 0 80 80'><ellipse cx='40' cy='45' rx='16' ry='13' fill='hsl(${h} 45% 24%)'/><circle cx='40' cy='31' r='10' fill='hsl(${h} 55% 34%)'/><circle cx='35' cy='30' r='1.6' fill='#fff'/><circle cx='45' cy='30' r='1.6' fill='#fff'/><path d='M11 41 L28 36 M69 41 L52 36 M10 50 L27 43 M70 50 L53 43 M12 30 L29 31 M68 30 L51 31 M16 21 L31 27 M64 21 L49 27' stroke='hsl(${h} 35% 58%)' stroke-width='3'/><circle cx='40' cy='40' r='2.2' fill='hsl(${h} 65% 70%)'/><circle cx='34' cy='43' r='1.2'/><circle cx='46' cy='43' r='1.2'/><circle cx='30' cy='45' r='1'/><circle cx='50' cy='45' r='1'/><path d='M35 52 L45 52' stroke='hsl(${h} 28% 72%)' stroke-width='1.5'/><circle cx='40' cy='24' r='2'/><circle cx='40' cy='57' r='1.4'/></svg>`;
+    return `<svg viewBox='0 0 80 80'>
+      <ellipse cx='40' cy='45' rx='17' ry='13' fill='hsl(${h} 46% 20%)'/>
+      <ellipse cx='40' cy='32' rx='12' ry='10' fill='hsl(${h} 56% 30%)'/>
+      <ellipse cx='40' cy='47' rx='10' ry='8' fill='hsl(${h} 41% 15%)'/>
+      <circle cx='35' cy='30' r='1.8' fill='#fff'/>
+      <circle cx='45' cy='30' r='1.8' fill='#fff'/>
+      <circle cx='35' cy='30' r='0.7' fill='#111'/>
+      <circle cx='45' cy='30' r='0.7' fill='#111'/>
+      <circle cx='40' cy='37' r='2.1' fill='hsl(${h} 72% 60%)'/>
+      <circle cx='34' cy='40' r='1.2' fill='hsl(${h} 18% 75%)'/>
+      <circle cx='46' cy='40' r='1.2' fill='hsl(${h} 18% 75%)'/>
+      <circle cx='31' cy='44' r='1' fill='hsl(${h} 18% 70%)'/>
+      <circle cx='49' cy='44' r='1' fill='hsl(${h} 18% 70%)'/>
+      <circle cx='40' cy='23' r='1.8' fill='hsl(${h} 58% 40%)'/>
+      <circle cx='40' cy='57' r='1.4' fill='hsl(${h} 42% 36%)'/>
+      <path d='M35 52 L45 52' stroke='hsl(${h} 20% 72%)' stroke-width='1.4'/>
+      <path d='M28 28 L19 23' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
+      <path d='M52 28 L61 23' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
+      <path d='M28 34 L14 31' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
+      <path d='M52 34 L66 31' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
+      <path d='M27 39 L12 41' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
+      <path d='M53 39 L68 41' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
+      <path d='M28 45 L13 51' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
+      <path d='M52 45 L67 51' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
+      <path d='M31 26 L26 20' stroke='hsl(${h} 35% 44%)' stroke-width='1.2'/>
+      <path d='M49 26 L54 20' stroke='hsl(${h} 35% 44%)' stroke-width='1.2'/>
+      <path d='M33 49 L30 53' stroke='hsl(${h} 35% 44%)' stroke-width='1.2'/>
+      <path d='M47 49 L50 53' stroke='hsl(${h} 35% 44%)' stroke-width='1.2'/>
+      <circle cx='24' cy='33' r='1.1' fill='hsl(${h} 18% 70%)'/>
+      <circle cx='56' cy='33' r='1.1' fill='hsl(${h} 18% 70%)'/>
+      <circle cx='40' cy='50' r='1.2' fill='hsl(${h} 18% 70%)'/>
+    </svg>`;
   }
   if (name.includes('Wolf') || name.includes('Hound')) {
-    return `<svg viewBox='0 0 80 80'><path d='M12 54 L24 34 L50 34 L66 49 L58 60 L18 60 Z' fill='hsl(${h} 42% 26%)'/><path d='M23 34 L28 21 L36 31 L44 21 L51 34' fill='hsl(${h} 52% 36%)'/><path d='M24 56 L28 63 M42 56 L45 64 M54 54 L58 62' stroke='hsl(${h} 28% 65%)' stroke-width='2'/><circle cx='33' cy='41' r='2' fill='#fff'/><circle cx='35' cy='41' r='1' fill='#111'/><path d='M50 42 L58 39 L56 46 Z' fill='hsl(${h} 30% 46%)'/><path d='M25 48 L54 48' stroke='hsl(${h} 20% 54%)' stroke-width='1.6'/><circle cx='20' cy='46' r='1.1'/><circle cx='28' cy='46' r='1.1'/><circle cx='36' cy='46' r='1.1'/><circle cx='44' cy='46' r='1.1'/><circle cx='52' cy='46' r='1.1'/><path d='M64 49 L71 46 L67 54 Z' fill='hsl(${h} 25% 40%)'/><path d='M22 35 L17 30 L21 43 Z' fill='hsl(${h} 26% 35%)'/></svg>`;
+    return `<svg viewBox='0 0 80 80'>
+      <path d='M11 55 L23 33 L51 33 L66 48 L57 61 L18 61 Z' fill='hsl(${h} 40% 24%)'/>
+      <path d='M24 34 L28 20 L35 31 L43 21 L50 34 Z' fill='hsl(${h} 49% 34%)'/>
+      <path d='M22 45 L55 45' stroke='hsl(${h} 30% 40%)' stroke-width='8' stroke-linecap='round'/>
+      <path d='M50 42 L59 39 L56 47 Z' fill='hsl(${h} 26% 44%)'/>
+      <path d='M63 49 L72 46 L67 55 Z' fill='hsl(${h} 25% 38%)'/>
+      <path d='M23 35 L17 29 L20 42 Z' fill='hsl(${h} 30% 30%)'/>
+      <circle cx='33' cy='40' r='2.1' fill='#fff'/>
+      <circle cx='35' cy='40' r='1' fill='#111'/>
+      <circle cx='30' cy='43' r='0.7' fill='hsl(${h} 10% 75%)'/>
+      <path d='M25 48 L53 48' stroke='hsl(${h} 14% 64%)' stroke-width='1.6'/>
+      <path d='M22 55 L26 63' stroke='hsl(${h} 26% 64%)' stroke-width='2.2' stroke-linecap='round'/>
+      <path d='M36 56 L39 64' stroke='hsl(${h} 26% 64%)' stroke-width='2.2' stroke-linecap='round'/>
+      <path d='M47 56 L50 64' stroke='hsl(${h} 26% 64%)' stroke-width='2.2' stroke-linecap='round'/>
+      <path d='M55 54 L59 62' stroke='hsl(${h} 26% 64%)' stroke-width='2.2' stroke-linecap='round'/>
+      <circle cx='19' cy='46' r='1.1' fill='hsl(${h} 12% 16%)'/>
+      <circle cx='27' cy='46' r='1.1' fill='hsl(${h} 12% 16%)'/>
+      <circle cx='35' cy='46' r='1.1' fill='hsl(${h} 12% 16%)'/>
+      <circle cx='43' cy='46' r='1.1' fill='hsl(${h} 12% 16%)'/>
+      <circle cx='51' cy='46' r='1.1' fill='hsl(${h} 12% 16%)'/>
+      <circle cx='58' cy='49' r='1' fill='hsl(${h} 10% 18%)'/>
+      <path d='M26 28 L31 30' stroke='hsl(${h} 22% 62%)' stroke-width='1.2'/>
+      <path d='M41 27 L46 29' stroke='hsl(${h} 22% 62%)' stroke-width='1.2'/>
+      <path d='M30 37 L37 35' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
+      <path d='M38 36 L45 34' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
+      <path d='M24 50 L31 52' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
+      <path d='M32 51 L39 53' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
+      <path d='M40 52 L47 54' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
+      <path d='M48 53 L55 55' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
+      <circle cx='61' cy='52' r='0.9' fill='hsl(${h} 10% 16%)'/>
+      <circle cx='15' cy='53' r='0.9' fill='hsl(${h} 10% 16%)'/>
+    </svg>`;
   }
   if (name.includes('Harpy') || name.includes('Crow')) {
-    return `<svg viewBox='0 0 80 80'><path d='M8 44 Q40 14 72 44 Q40 34 8 44 Z' fill='hsl(${h} 42% 30%)'/><ellipse cx='40' cy='49' rx='12' ry='10' fill='hsl(${h} 52% 40%)'/><path d='M40 28 L44 37 L36 37 Z' fill='hsl(${h} 60% 55%)'/><circle cx='37' cy='48' r='1.5' fill='#fff'/><circle cx='43' cy='48' r='1.5' fill='#fff'/><path d='M34 56 L40 62 L46 56' stroke='hsl(${h} 30% 70%)' stroke-width='2' fill='none'/><path d='M14 44 L22 50 L16 54 M66 44 L58 50 L64 54' stroke='hsl(${h} 40% 55%)' stroke-width='2'/><circle cx='28' cy='44' r='1'/><circle cx='32' cy='43' r='1'/><circle cx='48' cy='43' r='1'/><circle cx='52' cy='44' r='1'/><path d='M24 37 L30 40 M56 37 L50 40' stroke='hsl(${h} 35% 65%)' stroke-width='1.3'/><circle cx='40' cy='65' r='1.4'/></svg>`;
+    return `<svg viewBox='0 0 80 80'>
+      <path d='M8 44 Q40 12 72 44 Q40 34 8 44 Z' fill='hsl(${h} 44% 26%)'/>
+      <path d='M12 45 Q24 33 36 39 Q22 43 12 45 Z' fill='hsl(${h} 50% 34%)'/>
+      <path d='M68 45 Q56 33 44 39 Q58 43 68 45 Z' fill='hsl(${h} 50% 34%)'/>
+      <ellipse cx='40' cy='49' rx='12' ry='10' fill='hsl(${h} 54% 38%)'/>
+      <ellipse cx='40' cy='50' rx='8' ry='6' fill='hsl(${h} 44% 24%)'/>
+      <path d='M40 28 L45 37 L35 37 Z' fill='hsl(${h} 62% 56%)'/>
+      <path d='M39 36 L43 43 L37 43 Z' fill='hsl(${h} 28% 48%)'/>
+      <circle cx='37' cy='48' r='1.6' fill='#fff'/>
+      <circle cx='43' cy='48' r='1.6' fill='#fff'/>
+      <circle cx='37' cy='48' r='0.7' fill='#111'/>
+      <circle cx='43' cy='48' r='0.7' fill='#111'/>
+      <path d='M34 56 L40 63 L46 56' stroke='hsl(${h} 28% 72%)' stroke-width='2' fill='none'/>
+      <path d='M15 43 L22 50 L16 55' stroke='hsl(${h} 36% 58%)' stroke-width='2'/>
+      <path d='M65 43 L58 50 L64 55' stroke='hsl(${h} 36% 58%)' stroke-width='2'/>
+      <circle cx='28' cy='44' r='1' fill='hsl(${h} 18% 82%)'/>
+      <circle cx='32' cy='43' r='1' fill='hsl(${h} 18% 82%)'/>
+      <circle cx='48' cy='43' r='1' fill='hsl(${h} 18% 82%)'/>
+      <circle cx='52' cy='44' r='1' fill='hsl(${h} 18% 82%)'/>
+      <path d='M24 37 L30 40' stroke='hsl(${h} 34% 66%)' stroke-width='1.3'/>
+      <path d='M56 37 L50 40' stroke='hsl(${h} 34% 66%)' stroke-width='1.3'/>
+      <path d='M18 46 L24 48' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
+      <path d='M24 48 L30 50' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
+      <path d='M30 50 L36 52' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
+      <path d='M62 46 L56 48' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
+      <path d='M56 48 L50 50' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
+      <path d='M50 50 L44 52' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
+      <circle cx='40' cy='65' r='1.4' fill='hsl(${h} 18% 72%)'/>
+      <circle cx='35' cy='63' r='0.9' fill='hsl(${h} 18% 66%)'/>
+      <circle cx='45' cy='63' r='0.9' fill='hsl(${h} 18% 66%)'/>
+      <circle cx='40' cy='60' r='0.9' fill='hsl(${h} 18% 66%)'/>
+    </svg>`;
   }
-  return `<svg viewBox='0 0 80 80'><ellipse cx='40' cy='46' rx='24' ry='18' fill='hsl(${h} 40% 30%)'/><circle cx='31' cy='40' r='6' fill='hsl(${h} 68% 56%)'/><circle cx='49' cy='40' r='6' fill='hsl(${h} 68% 56%)'/><circle cx='31' cy='40' r='2' fill='#111'/><circle cx='49' cy='40' r='2' fill='#111'/><path d='M26 53 Q40 60 54 53' stroke='hsl(${h} 25% 72%)' stroke-width='2' fill='none'/><path d='M18 45 L10 42 M62 45 L70 42 M20 52 L12 56 M60 52 L68 56' stroke='hsl(${h} 30% 54%)' stroke-width='2'/><circle cx='24' cy='46' r='1'/><circle cx='30' cy='46' r='1'/><circle cx='36' cy='46' r='1'/><circle cx='44' cy='46' r='1'/><circle cx='50' cy='46' r='1'/><circle cx='56' cy='46' r='1'/><path d='M32 28 L40 18 L48 28' stroke='hsl(${h} 35% 60%)' stroke-width='2' fill='none'/></svg>`;
+  return `<svg viewBox='0 0 80 80'>
+    <ellipse cx='40' cy='46' rx='24' ry='18' fill='hsl(${h} 40% 28%)'/>
+    <ellipse cx='40' cy='47' rx='18' ry='13' fill='hsl(${h} 46% 20%)'/>
+    <circle cx='31' cy='40' r='6' fill='hsl(${h} 67% 54%)'/>
+    <circle cx='49' cy='40' r='6' fill='hsl(${h} 67% 54%)'/>
+    <circle cx='31' cy='40' r='2' fill='#111'/>
+    <circle cx='49' cy='40' r='2' fill='#111'/>
+    <circle cx='26' cy='37' r='1.1' fill='hsl(${h} 10% 76%)'/>
+    <circle cx='54' cy='37' r='1.1' fill='hsl(${h} 10% 76%)'/>
+    <path d='M26 53 Q40 60 54 53' stroke='hsl(${h} 25% 72%)' stroke-width='2' fill='none'/>
+    <path d='M33 54 L37 51' stroke='hsl(${h} 12% 62%)' stroke-width='1.2'/>
+    <path d='M47 54 L43 51' stroke='hsl(${h} 12% 62%)' stroke-width='1.2'/>
+    <path d='M18 45 L10 42' stroke='hsl(${h} 30% 54%)' stroke-width='2'/>
+    <path d='M62 45 L70 42' stroke='hsl(${h} 30% 54%)' stroke-width='2'/>
+    <path d='M20 52 L12 56' stroke='hsl(${h} 30% 54%)' stroke-width='2'/>
+    <path d='M60 52 L68 56' stroke='hsl(${h} 30% 54%)' stroke-width='2'/>
+    <circle cx='24' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
+    <circle cx='30' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
+    <circle cx='36' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
+    <circle cx='44' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
+    <circle cx='50' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
+    <circle cx='56' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
+    <path d='M32 28 L40 18 L48 28' stroke='hsl(${h} 35% 60%)' stroke-width='2' fill='none'/>
+    <path d='M34 28 L40 24 L46 28' stroke='hsl(${h} 35% 50%)' stroke-width='1.4' fill='none'/>
+    <circle cx='40' cy='31' r='1.2' fill='hsl(${h} 18% 68%)'/>
+    <circle cx='21' cy='50' r='0.9' fill='hsl(${h} 10% 14%)'/>
+    <circle cx='59' cy='50' r='0.9' fill='hsl(${h} 10% 14%)'/>
+    <path d='M24 56 L29 58' stroke='hsl(${h} 18% 62%)' stroke-width='1.1'/>
+    <path d='M29 58 L34 59' stroke='hsl(${h} 18% 62%)' stroke-width='1.1'/>
+    <path d='M56 56 L51 58' stroke='hsl(${h} 18% 62%)' stroke-width='1.1'/>
+    <path d='M51 58 L46 59' stroke='hsl(${h} 18% 62%)' stroke-width='1.1'/>
+  </svg>`;
 }
 
 function respawnMonsters() {
