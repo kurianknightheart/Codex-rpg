@@ -183,12 +183,14 @@ function screenToWorldTile(clientX, clientY) {
   const lx = clientX - rect.left;
   const ly = clientY - rect.top;
   const s = 38;
-  const cx = lx - (el.world.clientWidth / 2 - 38);
-  const cy = ly - 24;
-  const localX = (cx / (s / 2) + cy / (s / 4)) / 2;
-  const localY = (cy / (s / 4) - cx / (s / 2)) / 2;
-  const wx = Math.round(state.player.pos.x + localX - VIEW_RADIUS);
-  const wy = Math.round(state.player.pos.y + localY - VIEW_RADIUS);
+  const centerX = el.world.clientWidth / 2;
+  const centerY = el.world.clientHeight / 2;
+  const dx = lx - centerX;
+  const dy = ly - centerY;
+  const localX = (dx / (s / 2) + dy / (s / 4)) / 2;
+  const localY = (dy / (s / 4) - dx / (s / 2)) / 2;
+  const wx = Math.round(state.player.pos.x + localX);
+  const wy = Math.round(state.player.pos.y + localY);
   return {
     x: clamp(wx, 0, MAP_SIZE - 1),
     y: clamp(wy, 0, MAP_SIZE - 1),
