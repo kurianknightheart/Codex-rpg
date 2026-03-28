@@ -1,7 +1,7 @@
 :root {
-  --bg: #0f0c14;
+  --bg: #09060f;
   --panel: #171221;
-  --line: #3f3150;
+  --line: #6f5335;
   --text: #efe5d4;
   --muted: #b2a895;
   --gold: #d6b06a;
@@ -10,7 +10,16 @@
 * { box-sizing: border-box; }
 body { margin: 0; color: var(--text); background: radial-gradient(circle at top, #2f252f, #17121c 42%, var(--bg) 72%); font-family: "Friz Quadrata Std", "Cinzel", "Palatino Linotype", Georgia, serif; }
 .app { min-height: 100svh; display: grid; grid-template-rows: auto 1fr auto auto; gap: .45rem; padding: .5rem; padding-bottom: 104px; }
-.hud, .screen, .bottom-nav, .log { background: linear-gradient(180deg, #251d28, #17121f); border: 1px solid #6f5642; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(255,225,170,.05), 0 8px 24px rgba(0,0,0,.42); }
+.hud, .screen, .bottom-nav, .log { position:relative; background: linear-gradient(180deg, #251d28, #17121f); border: 1px solid #8d6a42; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(255,225,170,.05), 0 8px 24px rgba(0,0,0,.42); }
+.hud::before,.screen::before,.bottom-nav::before,.log::before{
+  content:'';
+  position:absolute;
+  inset:4px;
+  border:1px solid rgba(217,179,120,.34);
+  border-radius:10px;
+  pointer-events:none;
+  box-shadow:inset 0 0 22px rgba(217,179,120,.08);
+}
 .hud { padding: .45rem .55rem; }
 .hud-top { display:flex; justify-content:space-between; align-items:center; gap:.5rem; margin-bottom:.35rem; }
 .hud h1 { margin: 0; font-size: .92rem; letter-spacing: .12em; text-transform: uppercase; color: #e3c38e; text-shadow: 0 0 8px rgba(201,152,84,.22); }
@@ -19,7 +28,7 @@ body { margin: 0; color: var(--text); background: radial-gradient(circle at top,
 .pill { background: linear-gradient(180deg, #2d223a, #231a2f); border: 1px solid #6c5683; border-radius: 8px; text-align: center; font-size: .74rem; padding: .4rem .24rem; box-shadow: inset 0 0 10px rgba(0,0,0,.25); }
 .screen { display: none; padding: .5rem; }
 .screen.active { display: block; }
-.world { position: relative; height: 40svh; overflow: hidden; border-radius: 12px; border: 1px solid #5e4a39; background: radial-gradient(circle at 30% 20%, #364a37, #1b1620 50%, #110d17); box-shadow: inset 0 0 50px rgba(0,0,0,.45); touch-action: manipulation; }
+.world { position: relative; height: 40svh; overflow: hidden; border-radius: 12px; border: 2px solid #7f603c; background: radial-gradient(circle at 30% 20%, #364a37, #1b1620 50%, #110d17); box-shadow: inset 0 0 50px rgba(0,0,0,.45), 0 0 0 2px rgba(224,188,129,.12); touch-action: manipulation; }
 .loot-drop{
   position:absolute;
   left:50%;
@@ -105,6 +114,12 @@ body { margin: 0; color: var(--text); background: radial-gradient(circle at top,
 .deco.heather { width: 14px; height: 10px; background: #8b678e; border-radius: 10px; }
 .deco.lake { width: 42px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #79b2d6, #2f5f82); box-shadow: inset 0 -3px 4px rgba(0,0,0,.25), 0 0 8px rgba(78,140,179,.55); opacity:.85; }
 .deco.mountain { width: 30px; height: 24px; background: linear-gradient(145deg, #7f817f, #494c52); clip-path: polygon(50% 0, 100% 100%, 0 100%); box-shadow: -8px 2px 0 rgba(100,104,112,.65), 8px 2px 0 rgba(70,74,82,.75); }
+.deco.shrub { width: 20px; height: 16px; background: radial-gradient(circle at 30% 30%, #5b8b49, #32552f); border-radius: 11px; box-shadow: 0 10px 0 -8px #473827; }
+.deco.fern { width: 16px; height: 18px; background: linear-gradient(160deg, #6c9d56, #2f4d2b); clip-path: polygon(48% 0,58% 20%,72% 12%,60% 34%,80% 34%,62% 54%,78% 62%,54% 67%,62% 100%,46% 76%,30% 100%,36% 66%,14% 62%,30% 52%,10% 34%,30% 33%,18% 12%,38% 20%); }
+.deco.bush { width: 22px; height: 14px; background: radial-gradient(circle at 50% 35%, #759f55, #425d36); border-radius: 10px; }
+.deco.flowers { width: 18px; height: 12px; background: radial-gradient(circle at 35% 45%, #d6a2d8 14%, #6d9958 18%, #6d9958 100%); border-radius: 10px; }
+.deco.vine { width: 12px; height: 18px; background: linear-gradient(#7fa15a,#355b31); border-radius: 10px; transform: translate(-50%,-50%) rotate(-8deg); }
+.deco.stump { width: 12px; height: 12px; background: radial-gradient(circle at 40% 30%, #9b7650, #5d3f2b); border-radius: 4px; }
 .player { position: absolute; width: 64px; height: 88px; transform: translate(-50%,-50%); z-index: 10; pointer-events: none; display:block; }
 .player svg{width:100%;height:100%;filter:drop-shadow(0 4px 5px rgba(0,0,0,.5));shape-rendering:geometricPrecision}
 .player.walk{animation:walk .24s linear infinite}

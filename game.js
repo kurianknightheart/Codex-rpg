@@ -117,7 +117,34 @@ const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
 const SAVE_KEY = 'ashen_marches_save_v1';
 
-function knightSvg(weaponHue = 24, armorHue = 220, trimHue = 45) {
+function getKnightAppearance() {
+  const eq = state.player.equipment || {};
+  return {
+    weaponHue: eq.weapon?.appearance?.hue ?? 24,
+    armorHue: eq.chestArmor?.appearance?.hue ?? eq.armor?.appearance?.hue ?? 220,
+    trimHue: eq.necklace?.appearance?.hue ?? eq.ring1?.appearance?.hue ?? 45,
+    clothHue: eq.cape?.appearance?.hue ?? eq.gloves?.appearance?.hue ?? 280,
+    leatherHue: eq.boots?.appearance?.hue ?? eq.belt?.appearance?.hue ?? 30,
+    helmHue: eq.helmet?.appearance?.hue ?? 210,
+    eyeHue: 28,
+    hasHelmet: Boolean(eq.helmet),
+    hasCape: Boolean(eq.cape),
+    hasOffhand: Boolean(eq.offhand),
+  };
+}
+
+function knightSvg({
+  weaponHue = 24,
+  armorHue = 220,
+  trimHue = 45,
+  clothHue = 280,
+  leatherHue = 30,
+  helmHue = 210,
+  eyeHue = 28,
+  hasHelmet = false,
+  hasCape = false,
+  hasOffhand = false,
+} = {}) {
   let plateDots = '';
   for (let y = 64; y <= 126; y += 7) {
     for (let x = 43; x <= 77; x += 4) {
@@ -146,32 +173,40 @@ function knightSvg(weaponHue = 24, armorHue = 220, trimHue = 45) {
     <ellipse cx='60' cy='86' rx='42' ry='58' fill='url(#aura)'/>
     <g stroke='#18131f' stroke-width='2.2' stroke-linejoin='round' stroke-linecap='round'>
       <path d='M42 150 L60 92 L78 150 Z' fill='url(#trimGrad)'/>
-      <ellipse cx='60' cy='43' rx='18' ry='16' fill='hsl(30 18% 78%)'/>
+      <ellipse cx='60' cy='43' rx='18' ry='16' fill='hsl(30 24% 78%)'/>
+      <path d='M45 34 Q60 17 75 34 L75 39 Q60 26 45 39 Z' fill='hsl(15 8% 12%)'/>
+      <path d='M49 52 Q60 57 71 52' stroke='hsl(22 34% 36%)' stroke-width='1.6' fill='none'/>
+      <ellipse cx='54' cy='44' rx='3.2' ry='2.4' fill='hsl(${eyeHue} 42% 42%)'/>
+      <ellipse cx='66' cy='44' rx='3.2' ry='2.4' fill='hsl(${eyeHue} 42% 42%)'/>
+      <circle cx='54' cy='44' r='1.2' fill='#1c130f'/>
+      <circle cx='66' cy='44' r='1.2' fill='#1c130f'/>
+      <path d='M52 39 L56 38 M64 38 L68 39' stroke='hsl(15 10% 15%)' stroke-width='1.2'/>
       <path d='M40 46 Q60 18 80 46 L78 58 L42 58 Z' fill='url(#armorGrad)'/>
       <rect x='37' y='60' width='46' height='56' rx='14' fill='url(#armorGrad)'/>
       <path d='M44 66 L76 66 L73 108 L47 108 Z' fill='hsl(${trimHue} 58% 38%)' opacity='.8'/>
+      ${hasCape ? `<path d='M38 60 L29 134 L48 144 L50 62 Z' fill='hsl(${clothHue} 34% 28%)' opacity='.85'/>` : ''}
+      ${hasCape ? `<path d='M82 60 L70 144 L92 134 L84 62 Z' fill='hsl(${clothHue} 34% 28%)' opacity='.85'/>` : ''}
       <path d='M46 72 L74 72 M46 80 L74 80 M46 88 L74 88 M46 96 L74 96' stroke='hsl(${trimHue} 62% 62%)' stroke-width='1'/>
       ${runeMarks}
       ${plateDots}
+      ${hasHelmet ? `<path d='M42 45 Q60 20 78 45 L75 58 L45 58 Z' fill='hsl(${helmHue} 28% 44%)'/>` : ''}
+      ${hasHelmet ? `<path d='M50 44 L70 44 L68 53 L52 53 Z' fill='hsl(${helmHue} 24% 20%)'/>` : ''}
       <g class='limb arm-left'><rect x='29' y='68' width='10' height='40' rx='4' fill='hsl(${armorHue} 24% 40%)'/></g>
       <g class='limb arm-right'><rect x='81' y='68' width='10' height='40' rx='4' fill='hsl(${armorHue} 24% 40%)'/></g>
-      <g class='limb leg-left'><rect x='47' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/></g>
-      <g class='limb leg-right'><rect x='61' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/></g>
-      <g class='limb leg-left'><rect x='45' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 25%)'/></g>
-      <g class='limb leg-right'><rect x='59' y='132' width='16' height='10' rx='4' fill='hsl(${armorHue} 24% 25%)'/></g>
+      <g class='limb leg-left'><rect x='47' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/><circle cx='53' cy='125' r='2' fill='hsl(${leatherHue} 26% 38%)'/></g>
+      <g class='limb leg-right'><rect x='61' y='112' width='12' height='24' rx='4' fill='hsl(${armorHue} 18% 37%)'/><circle cx='67' cy='125' r='2' fill='hsl(${leatherHue} 26% 38%)'/></g>
+      <g class='limb leg-left'><rect x='45' y='132' width='16' height='10' rx='4' fill='hsl(${leatherHue} 26% 25%)'/></g>
+      <g class='limb leg-right'><rect x='59' y='132' width='16' height='10' rx='4' fill='hsl(${leatherHue} 26% 25%)'/></g>
       <path d='M86 43 L92 101 L83 102 L78 46 Z' fill='hsl(${weaponHue} 58% 70%)'/>
       <rect x='74' y='81' width='24' height='6' rx='2' transform='rotate(10 86 84)' fill='hsl(${weaponHue} 48% 28%)'/>
-      <circle cx='54' cy='44' r='2.1' fill='#1d171d'/>
-      <circle cx='66' cy='44' r='2.1' fill='#1d171d'/>
+      ${hasOffhand ? `<ellipse cx='24' cy='90' rx='10' ry='14' fill='hsl(${trimHue} 30% 35%)'/>` : ''}
+      ${hasOffhand ? `<path d='M18 90 Q24 78 30 90 Q24 102 18 90 Z' fill='hsl(${armorHue} 20% 58%)'/>` : ''}
     </g>
   </svg>`;
 }
 
 function applyKnight() {
-  const w = state.player.equipment.weapon?.appearance?.hue ?? 24;
-  const a = state.player.equipment.chestArmor?.appearance?.hue ?? state.player.equipment.armor?.appearance?.hue ?? 220;
-  const t = state.player.equipment.necklace?.appearance?.hue ?? 45;
-  const svg = knightSvg(w, a, t);
+  const svg = knightSvg(getKnightAppearance());
   el.player.innerHTML = svg;
   const existingSvg = el.characterPreview.querySelector('svg');
   if (existingSvg) existingSvg.remove();
@@ -261,12 +296,19 @@ function renderMapChunk() {
       patch.style.width = `${52 + Math.floor(decoSeed(x + 3, y + 5) * 38)}px`;
       patch.style.height = `${28 + Math.floor(decoSeed(x + 8, y + 2) * 22)}px`;
       fragment.appendChild(patch);
-      if (decoSeed(x, y) < 0.34) {
+      if (decoSeed(x, y) < 0.78) {
         const deco = document.createElement('div');
         deco.className = `deco ${featureForTile(x, y, biome)}`;
-        deco.style.left = `${p.x + 34}px`;
-        deco.style.top = `${p.y + 8}px`;
+        deco.style.left = `${p.x + 28 + (decoSeed(x + 19, y + 7) - 0.5) * 24}px`;
+        deco.style.top = `${p.y + 6 + (decoSeed(x + 5, y + 23) - 0.5) * 14}px`;
         fragment.appendChild(deco);
+        if (decoSeed(x + 13, y + 29) > 0.72) {
+          const deco2 = document.createElement('div');
+          deco2.className = `deco ${decoForBiome(biome, decoSeed(x + 41, y + 27))}`;
+          deco2.style.left = `${p.x + 26 + (decoSeed(x + 31, y + 3) - 0.5) * 16}px`;
+          deco2.style.top = `${p.y + 10 + (decoSeed(x + 9, y + 17) - 0.5) * 10}px`;
+          fragment.appendChild(deco2);
+        }
       }
     }
   }
@@ -276,16 +318,16 @@ function renderMapChunk() {
   renderPlayer();
 }
 
-function decoForBiome(biome) {
-  if (biome === 'grass') return 'tree';
-  if (biome === 'forest') return 'pine';
-  if (biome === 'hills') return 'stone';
-  if (biome === 'moor') return 'heather';
-  if (biome === 'swamp') return 'reed';
-  if (biome === 'desert') return 'stone';
-  if (biome === 'frost') return 'frostshrub';
-  if (biome === 'ruin') return 'ruin';
-  if (biome === 'ash') return 'ash';
+function decoForBiome(biome, seed = 0.5) {
+  if (biome === 'grass') return seed > 0.5 ? 'shrub' : 'flowers';
+  if (biome === 'forest') return seed > 0.5 ? 'pine' : 'fern';
+  if (biome === 'hills') return seed > 0.55 ? 'stone' : 'bush';
+  if (biome === 'moor') return seed > 0.45 ? 'heather' : 'vine';
+  if (biome === 'swamp') return seed > 0.5 ? 'reed' : 'fern';
+  if (biome === 'desert') return seed > 0.55 ? 'stone' : 'stump';
+  if (biome === 'frost') return seed > 0.4 ? 'frostshrub' : 'shrub';
+  if (biome === 'ruin') return seed > 0.4 ? 'ruin' : 'vine';
+  if (biome === 'ash') return seed > 0.5 ? 'ash' : 'stump';
   return 'stone';
 }
 
@@ -293,7 +335,7 @@ function featureForTile(x, y, biome) {
   const seed = decoSeed(x * 3 + 7, y * 5 + 11);
   if (seed > 0.94 && biome !== 'water') return 'lake';
   if (seed > 0.8) return 'mountain';
-  return decoForBiome(biome);
+  return decoForBiome(biome, seed);
 }
 
 function renderPlayer() {
@@ -302,22 +344,52 @@ function renderPlayer() {
   el.player.style.top = `${Math.floor(el.world.clientHeight / 2)}px`;
 }
 
+function detailedWeaponSvg(kind, h, studs) {
+  if (kind === 'spear') {
+    return `<svg viewBox='0 0 40 40'>
+      <path d='M20 2 L24 9 L20 15 L16 9 Z' fill='hsl(${h} 82% 84%)'/><path d='M18 13 L22 13 L22 36 L18 36 Z' fill='hsl(${h} 34% 36%)'/><rect x='18' y='18' width='4' height='2' fill='hsl(${h} 22% 48%)'/><rect x='18' y='24' width='4' height='2' fill='hsl(${h} 22% 48%)'/><rect x='18' y='30' width='4' height='2' fill='hsl(${h} 22% 48%)'/><path d='M16 10 L24 10' stroke='hsl(${h} 20% 32%)' stroke-width='1'/><path d='M17 16 L23 16' stroke='hsl(${h} 20% 32%)' stroke-width='1'/><circle cx='20' cy='20' r='0.8'/><circle cx='20' cy='26' r='0.8'/><circle cx='20' cy='32' r='0.8'/><path d='M19 3 L20 1 L21 3' stroke='hsl(${h} 20% 28%)' stroke-width='0.8'/><path d='M16 8 L20 12 L24 8' stroke='hsl(${h} 18% 22%)' stroke-width='0.8' fill='none'/><path d='M18 36 L22 36 L21 38 L19 38 Z' fill='hsl(${h} 30% 20%)'/><rect x='17' y='34' width='6' height='2' fill='hsl(${h} 18% 28%)'/><rect x='17' y='22' width='6' height='1' fill='hsl(${h} 70% 72%)' opacity='.55'/><rect x='17' y='28' width='6' height='1' fill='hsl(${h} 70% 72%)' opacity='.55'/><circle cx='18' cy='18' r='0.6'/><circle cx='22' cy='18' r='0.6'/><circle cx='18' cy='30' r='0.6'/><circle cx='22' cy='30' r='0.6'/>${studs}
+    </svg>`;
+  }
+  if (kind === 'falchion') {
+    return `<svg viewBox='0 0 40 40'>
+      <path d='M13 6 Q30 8 25 31 Q17 28 11 10 Z' fill='hsl(${h} 62% 74%)'/><path d='M14 9 Q24 10 21 26' stroke='hsl(${h} 25% 42%)' stroke-width='1.1' fill='none'/><path d='M15 24 L26 24' stroke='hsl(${h} 74% 86%)' stroke-width='1'/><rect x='14' y='24' width='12' height='3' rx='2' fill='hsl(${h} 30% 28%)'/><rect x='18' y='27' width='4' height='8' rx='2' fill='hsl(${h} 26% 24%)'/><circle cx='20' cy='35' r='1.4' fill='hsl(${h} 76% 72%)'/><path d='M13 20 L11 19 M24 15 L26 14 M17 12 L19 12' stroke='hsl(${h} 18% 22%)' stroke-width='0.8'/><circle cx='16' cy='25' r='0.7'/><circle cx='20' cy='25' r='0.7'/><circle cx='24' cy='25' r='0.7'/><path d='M12 8 L15 6 L16 8' fill='hsl(${h} 70% 82%)'/><path d='M12 11 L15 9 L16 11' fill='hsl(${h} 70% 82%)'/><path d='M12 14 L15 12 L16 14' fill='hsl(${h} 70% 82%)'/><path d='M23 28 L24 31 L22 33 L20 31 L21 28' fill='hsl(${h} 45% 55%)'/><path d='M18 28 L17 31 L19 33 L21 31 L20 28' fill='hsl(${h} 45% 55%)'/><rect x='17' y='22' width='6' height='1' fill='hsl(${h} 70% 85%)' opacity='.6'/><rect x='17' y='30' width='6' height='1' fill='hsl(${h} 12% 14%)' opacity='.5'/><circle cx='13' cy='18' r='0.6'/><circle cx='25' cy='18' r='0.6'/><circle cx='12' cy='22' r='0.6'/>${studs}
+    </svg>`;
+  }
+  if (kind === 'mace') {
+    return `<svg viewBox='0 0 40 40'>
+      <circle cx='20' cy='8' r='6' fill='hsl(${h} 30% 44%)'/><rect x='18' y='12' width='4' height='22' rx='2' fill='hsl(${h} 35% 34%)'/><path d='M20 2 L21 5 L20 8 L19 5 Z' fill='hsl(${h} 70% 72%)'/><path d='M14 8 L17 9 L20 8 L17 7 Z' fill='hsl(${h} 26% 52%)'/><path d='M26 8 L23 9 L20 8 L23 7 Z' fill='hsl(${h} 26% 52%)'/><path d='M20 14 L22 16 L20 18 L18 16 Z' fill='hsl(${h} 26% 48%)'/><rect x='17' y='16' width='6' height='2' fill='hsl(${h} 22% 40%)'/><rect x='17' y='20' width='6' height='2' fill='hsl(${h} 22% 40%)'/><rect x='17' y='24' width='6' height='2' fill='hsl(${h} 22% 40%)'/><rect x='17' y='28' width='6' height='2' fill='hsl(${h} 22% 40%)'/><circle cx='20' cy='34' r='1.3' fill='hsl(${h} 72% 78%)'/><circle cx='17' cy='4' r='0.9'/><circle cx='23' cy='4' r='0.9'/><circle cx='15' cy='8' r='0.8'/><circle cx='25' cy='8' r='0.8'/><circle cx='17' cy='12' r='0.8'/><circle cx='23' cy='12' r='0.8'/><path d='M18 33 L22 33' stroke='hsl(${h} 18% 20%)' stroke-width='1'/><path d='M19 36 L21 36' stroke='hsl(${h} 18% 20%)' stroke-width='1'/><rect x='18' y='30' width='4' height='2' fill='hsl(${h} 16% 28%)'/>${studs}
+    </svg>`;
+  }
+  if (kind === 'warpick') {
+    return `<svg viewBox='0 0 40 40'>
+      <path d='M13 10 L27 10 L30 14 L10 14 Z' fill='hsl(${h} 55% 74%)'/><rect x='18' y='12' width='4' height='22' rx='2' fill='hsl(${h} 35% 34%)'/><path d='M27 10 L34 4 L31 14 Z' fill='hsl(${h} 65% 72%)'/><path d='M13 10 L7 6 L10 14 Z' fill='hsl(${h} 45% 62%)'/><rect x='17' y='16' width='6' height='2' fill='hsl(${h} 22% 44%)'/><rect x='17' y='20' width='6' height='2' fill='hsl(${h} 22% 44%)'/><rect x='17' y='24' width='6' height='2' fill='hsl(${h} 22% 44%)'/><rect x='17' y='28' width='6' height='2' fill='hsl(${h} 22% 44%)'/><path d='M30 8 L33 5' stroke='hsl(${h} 18% 30%)' stroke-width='1'/><path d='M28 11 L32 9' stroke='hsl(${h} 18% 30%)' stroke-width='1'/><path d='M11 10 L8 8' stroke='hsl(${h} 18% 30%)' stroke-width='1'/><path d='M12 13 L8 12' stroke='hsl(${h} 18% 30%)' stroke-width='1'/><circle cx='20' cy='34' r='1.4' fill='hsl(${h} 74% 78%)'/><circle cx='20' cy='17' r='0.8'/><circle cx='20' cy='21' r='0.8'/><circle cx='20' cy='25' r='0.8'/><circle cx='20' cy='29' r='0.8'/><rect x='18' y='32' width='4' height='2' fill='hsl(${h} 18% 25%)'/><rect x='18' y='35' width='4' height='2' fill='hsl(${h} 18% 20%)'/><circle cx='14' cy='12' r='0.7'/><circle cx='26' cy='12' r='0.7'/>${studs}
+    </svg>`;
+  }
+  return `<svg viewBox='0 0 40 40'>
+    <rect x='18' y='3' width='4' height='25' rx='2' fill='hsl(${h} 62% 67%)'/><rect x='11' y='24' width='18' height='4' rx='2' fill='hsl(${h} 40% 30%)'/><rect x='18' y='27' width='4' height='8' rx='2' fill='hsl(${h} 35% 24%)'/><circle cx='20' cy='5' r='1.1' fill='hsl(${h} 74% 82%)'/><circle cx='20' cy='9' r='1.1' fill='hsl(${h} 74% 82%)'/><circle cx='20' cy='13' r='1.1' fill='hsl(${h} 74% 82%)'/><circle cx='20' cy='17' r='1.1' fill='hsl(${h} 74% 82%)'/><circle cx='20' cy='21' r='1.1' fill='hsl(${h} 74% 82%)'/><path d='M12 24 L16 20 L20 24' fill='hsl(${h} 44% 44%)'/><path d='M28 24 L24 20 L20 24' fill='hsl(${h} 44% 44%)'/><rect x='13' y='25' width='14' height='2' fill='hsl(${h} 20% 20%)'/><rect x='18' y='30' width='4' height='2' fill='hsl(${h} 18% 28%)'/><rect x='18' y='33' width='4' height='2' fill='hsl(${h} 18% 22%)'/><circle cx='15' cy='26' r='0.7'/><circle cx='20' cy='26' r='0.7'/><circle cx='25' cy='26' r='0.7'/><circle cx='20' cy='37' r='1.2' fill='hsl(${h} 74% 78%)'/><path d='M18 2 L20 1 L22 2' stroke='hsl(${h} 18% 26%)' stroke-width='0.8'/><path d='M19 28 L21 28' stroke='hsl(${h} 12% 18%)' stroke-width='1'/><path d='M19 35 L21 35' stroke='hsl(${h} 12% 18%)' stroke-width='1'/>${studs}
+  </svg>`;
+}
+
 function iconSvg(item) {
   const h = item.appearance.hue;
   const idNum = Number(String(item.id).replace(/\D/g, '')) || 1;
   const v1 = 6 + (idNum % 8);
   const v2 = 10 + (idNum % 14);
-  const v3 = 18 + (idNum % 10);
   const rarityGlow = item.rarity === 'legendary' ? 75 : item.rarity === 'epic' ? 62 : item.rarity === 'rare' ? 55 : 45;
   let studs = '';
   for (let i = 0; i < 10; i += 1) studs += `<circle cx='${8 + i * 2.4}' cy='${34 - (i % 2)}' r='0.9' fill='hsl(${h} 20% 25%)'/>`;
   const core = `<polygon points='20,4 ${30 + (idNum % 4)},14 20,36 ${10 - (idNum % 4)},14' fill='hsl(${h} 58% ${rarityGlow}%)'/>${studs}`;
   if (item.slot === 'weapon') {
-    if (item.name.includes('Spear')) return `<svg viewBox='0 0 40 40'><path d='M20 2 L23 8 L20 13 L17 8 Z' fill='hsl(${h} 80% 82%)'/><rect x='18' y='9' width='4' height='26' rx='2' fill='hsl(${h} 36% 38%)'/>${studs}</svg>`;
-    if (item.name.includes('Falchion')) return `<svg viewBox='0 0 40 40'><path d='M14 6 Q28 8 24 30 Q17 26 12 10 Z' fill='hsl(${h} 62% 72%)'/><rect x='14' y='24' width='12' height='3' rx='2' fill='hsl(${h} 30% 28%)'/>${studs}</svg>`;
-    if (item.name.includes('Mace')) return `<svg viewBox='0 0 40 40'><circle cx='20' cy='8' r='6' fill='hsl(${h} 30% 44%)'/><rect x='18' y='12' width='4' height='22' rx='2' fill='hsl(${h} 35% 34%)'/>${studs}</svg>`;
-    if (item.name.includes('War Pick')) return `<svg viewBox='0 0 40 40'><path d='M13 10 L27 10 L30 14 L10 14 Z' fill='hsl(${h} 55% 74%)'/><rect x='18' y='12' width='4' height='22' rx='2' fill='hsl(${h} 35% 34%)'/><path d='M27 10 L34 4 L31 14 Z' fill='hsl(${h} 65% 72%)'/>${studs}</svg>`;
-    return `<svg viewBox='0 0 40 40'><rect x='18' y='3' width='4' height='25' rx='2' fill='hsl(${h} 62% 67%)'/><rect x='11' y='24' width='18' height='4' rx='2' fill='hsl(${h} 40% 30%)'/><rect x='18' y='27' width='4' height='8' rx='2' fill='hsl(${h} 35% 24%)'/><circle cx='20' cy='${v3}' r='2' fill='hsl(${h} 70% 78%)'/>${studs}</svg>`;
+    const kind = item.name.includes('Spear')
+      ? 'spear'
+      : item.name.includes('Falchion')
+        ? 'falchion'
+        : item.name.includes('Mace')
+          ? 'mace'
+          : item.name.includes('War Pick')
+            ? 'warpick'
+            : 'sword';
+    return detailedWeaponSvg(kind, h, studs);
   }
   if (DEFENSE_SLOTS.includes(item.slot)) {
     return `<svg viewBox='0 0 40 40'><rect x='8' y='8' width='24' height='24' rx='7' fill='hsl(${h} 34% 45%)'/><path d='M${v1} 12 L${v2} 30 L${32 - (idNum % 6)} 12' stroke='hsl(${h} 50% 70%)' stroke-width='2' fill='none'/><rect x='13' y='13' width='14' height='14' rx='3' fill='hsl(${h} 24% 32%)'/><circle cx='16' cy='16' r='1'/><circle cx='20' cy='16' r='1'/><circle cx='24' cy='16' r='1'/><circle cx='16' cy='20' r='1'/><circle cx='20' cy='20' r='1'/><circle cx='24' cy='20' r='1'/><circle cx='16' cy='24' r='1'/><circle cx='20' cy='24' r='1'/><circle cx='24' cy='24' r='1'/></svg>`;
@@ -550,6 +622,10 @@ function salvageItem(itemId) {
   updateHud();
 }
 
+function maxPlayerHp() {
+  return 120 + totalStat('hpIncrease') + derivedAttr('endurance') * 4 + Math.max(0, state.player.level - 1) * 8;
+}
+
 function totalStat(k) { return Object.values(state.player.equipment).reduce((a, it) => a + (it?.stats?.[k] || 0), 0); }
 function derivedAttr(k) { return (state.player.stats[k] || 0) + totalStat(k); }
 
@@ -568,7 +644,8 @@ function calculationSnapshot() {
 
 function updateHud() {
   const calc = calculationSnapshot();
-  const hpMax = 120 + totalStat('hpIncrease');
+  const hpMax = maxPlayerHp();
+  state.player.hp = clamp(state.player.hp, 0, hpMax);
   const manaMax = 60;
   el.coreStats.innerHTML = `
     <div class="resource-bar">
@@ -667,7 +744,15 @@ function renderItemDetails() {
 }
 
 function generateBestiary() {
-  const names = ['Bog Ghoul','Fen Raider','Crypt Hound','Ash Spider','Hollow Monk','Rook Bandit','Rot Boar','Cairn Witch','Mire Stalker','Grave Crow','Warden Shade','Pike Marauder','Blight Wolf','Bone Knight','Thorn Devourer','Howling Penitent','Stone Revenant','Blood Vicar','Maw Leech','Iron Troll','Dread Pilgrim','Fog Serpent','Ruin Harpy','Oathbreaker','Nightsworn Giant'];
+  const names = [
+    'Bog Ghoul', 'Fen Raider', 'Crypt Hound', 'Ash Spider', 'Hollow Monk', 'Rook Bandit', 'Rot Boar', 'Cairn Witch', 'Mire Stalker', 'Grave Crow',
+    'Warden Shade', 'Pike Marauder', 'Blight Wolf', 'Bone Knight', 'Thorn Devourer', 'Howling Penitent', 'Stone Revenant', 'Blood Vicar', 'Maw Leech', 'Iron Troll',
+    'Dread Pilgrim', 'Fog Serpent', 'Ruin Harpy', 'Oathbreaker', 'Nightsworn Giant',
+    'Barrow Lancer', 'Tomb Acolyte', 'Soot Charger', 'Ravenous Lurker', 'Ember Gnawer',
+    'Witchfen Stalker', 'Marsh Paladin', 'Brine Widow', 'Mire Fang', 'Ghast Piper',
+    'Ashen Enforcer', 'Storm Cairn Drake', 'Crypt Arbalist', 'Cinder Harrier', 'Nocturne Howler',
+    'Moonlit Reaver', 'Dusk Ravager', 'Rimebound Sentry', 'Woad Hexer', 'Briar Executioner',
+  ];
   state.bestiary = names.map((name, i) => ({
     name,
     tier: 1 + Math.floor(i / 7),
@@ -866,11 +951,7 @@ function drawMonsters() {
 function openCombatStage(monster) {
   if (!el.combatStage) return;
   el.combatStage.classList.remove('hidden');
-  el.combatPlayer.innerHTML = knightSvg(
-    state.player.equipment.weapon?.appearance?.hue ?? 24,
-    state.player.equipment.chestArmor?.appearance?.hue ?? 220,
-    state.player.equipment.necklace?.appearance?.hue ?? 45,
-  );
+  el.combatPlayer.innerHTML = knightSvg(getKnightAppearance());
   el.combatMonster.innerHTML = monsterSvg(monster.name, monster.hue);
 }
 
@@ -954,7 +1035,7 @@ function setExploreActions() {
   forage.addEventListener('click', () => {
     const biome = biomeAt(state.player.pos.x, state.player.pos.y);
     const gain = biome === 'swamp' || biome === 'ruin' ? 4 : 7;
-    state.player.hp = clamp(state.player.hp + gain, 0, 140);
+    state.player.hp = clamp(state.player.hp + gain, 0, maxPlayerHp());
     state.player.stamina = clamp(state.player.stamina - 3, 0, 100);
     addLog(`You forage in ${biome} terrain and recover ${gain} vitality.`);
     updateHud();
