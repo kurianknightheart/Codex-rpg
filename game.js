@@ -1042,18 +1042,26 @@ function bindTapAction(node, handler) {
 }
 
 function bindMapTap() {
-  const onTap = (clientX, clientY) => {
+  const onTap = (clientX, clientY, sourceTarget = null) => {
+    const tappedMonsterNode = sourceTarget?.closest?.('.monster') || document.elementFromPoint(clientX, clientY)?.closest?.('.monster');
+    if (tappedMonsterNode?.dataset?.uid) {
+      const tappedMonster = state.monsters.find((m) => m.uid === tappedMonsterNode.dataset.uid);
+      if (tappedMonster) {
+        engageMonster(tappedMonster);
+        return;
+      }
+    }
     const { x, y } = screenToWorldTile(clientX, clientY);
     state.destination = { x, y };
     state.mode = 'explore';
     state.encounter = null;
     el.encounter.textContent = `Travelling to (${x}, ${y}) through ${biomeAt(x, y)}.`;
   };
-  el.world.addEventListener('pointerdown', (ev) => onTap(ev.clientX, ev.clientY));
-  el.world.addEventListener('click', (ev) => onTap(ev.clientX, ev.clientY));
+  el.world.addEventListener('pointerdown', (ev) => onTap(ev.clientX, ev.clientY, ev.target));
+  el.world.addEventListener('click', (ev) => onTap(ev.clientX, ev.clientY, ev.target));
   el.world.addEventListener('touchstart', (ev) => {
     if (!ev.touches?.length) return;
-    onTap(ev.touches[0].clientX, ev.touches[0].clientY);
+    onTap(ev.touches[0].clientX, ev.touches[0].clientY, ev.target);
   }, { passive: true });
 }
 
@@ -1257,14 +1265,22 @@ function checkEncounter() {
     setExploreActions();
     return;
   }
-  state.encounter = m;
+  engageMonster(m);
+}
+
+function engageMonster(monster) {
+  state.destination = null;
+  state.encounter = monster;
   state.mode = 'combat';
-  openCombatStage(m);
-  const threat = m.isBoss ? 'Boss' : m.isElite ? 'Elite' : 'Normal';
-  el.encounter.textContent = `${threat} ${m.name} confronts you. Intent: ${m.intent}.`;
+  openCombatStage(monster);
+  const threat = monster.isBoss ? 'Boss' : monster.isElite ? 'Elite' : 'Normal';
+  el.encounter.textContent = `${threat} ${monster.name} confronts you. Intent: ${monster.intent}.`;
   el.actions.innerHTML = '';
   ['Strike', 'Power Strike', 'Guard', 'Dodge', 'Assess', 'Withdraw'].forEach((a) => {
-    const b = document.createElement('button'); b.textContent = a; b.addEventListener('click', () => combatAction(a.toLowerCase())); el.actions.appendChild(b);
+    const b = document.createElement('button');
+    b.textContent = a;
+    b.addEventListener('click', () => combatAction(a.toLowerCase()));
+    el.actions.appendChild(b);
   });
 }
 
