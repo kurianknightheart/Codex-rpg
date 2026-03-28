@@ -101,6 +101,11 @@ const el = {
   newGameBtn: document.getElementById('newGameBtn'),
   saveBtn: document.getElementById('saveBtn'),
   loadBtn: document.getElementById('loadBtn'),
+  combatStage: document.getElementById('combatStage'),
+  combatPlayer: document.getElementById('combatPlayer'),
+  combatMonster: document.getElementById('combatMonster'),
+  combatPlayerNums: document.getElementById('combatPlayerNums'),
+  combatMonsterNums: document.getElementById('combatMonsterNums'),
   lootDrop: document.getElementById('lootDrop'),
   levelUpPanel: document.getElementById('levelUpPanel'),
   levelUpText: document.getElementById('levelUpText'),
@@ -677,15 +682,15 @@ function generateBestiary() {
 
 function monsterSvg(name, h) {
   if (name.includes('Spider')) {
-    return `<svg viewBox='0 0 60 60'><ellipse cx='30' cy='33' rx='14' ry='11' fill='hsl(${h} 45% 30%)'/><circle cx='30' cy='22' r='8' fill='hsl(${h} 55% 38%)'/><path d='M10 35 L22 30 M50 35 L38 30 M10 25 L22 27 M50 25 L38 27' stroke='hsl(${h} 45% 55%)' stroke-width='3'/></svg>`;
+    return `<svg viewBox='0 0 80 80'><ellipse cx='40' cy='45' rx='16' ry='13' fill='hsl(${h} 45% 24%)'/><circle cx='40' cy='31' r='10' fill='hsl(${h} 55% 34%)'/><circle cx='35' cy='30' r='1.6' fill='#fff'/><circle cx='45' cy='30' r='1.6' fill='#fff'/><path d='M11 41 L28 36 M69 41 L52 36 M10 50 L27 43 M70 50 L53 43 M12 30 L29 31 M68 30 L51 31 M16 21 L31 27 M64 21 L49 27' stroke='hsl(${h} 35% 58%)' stroke-width='3'/><circle cx='40' cy='40' r='2.2' fill='hsl(${h} 65% 70%)'/><circle cx='34' cy='43' r='1.2'/><circle cx='46' cy='43' r='1.2'/><circle cx='30' cy='45' r='1'/><circle cx='50' cy='45' r='1'/><path d='M35 52 L45 52' stroke='hsl(${h} 28% 72%)' stroke-width='1.5'/><circle cx='40' cy='24' r='2'/><circle cx='40' cy='57' r='1.4'/></svg>`;
   }
   if (name.includes('Wolf') || name.includes('Hound')) {
-    return `<svg viewBox='0 0 60 60'><path d='M10 40 L20 25 L40 25 L50 40 Z' fill='hsl(${h} 45% 33%)'/><path d='M20 25 L24 14 L30 22 L36 14 L40 25' fill='hsl(${h} 60% 40%)'/></svg>`;
+    return `<svg viewBox='0 0 80 80'><path d='M12 54 L24 34 L50 34 L66 49 L58 60 L18 60 Z' fill='hsl(${h} 42% 26%)'/><path d='M23 34 L28 21 L36 31 L44 21 L51 34' fill='hsl(${h} 52% 36%)'/><path d='M24 56 L28 63 M42 56 L45 64 M54 54 L58 62' stroke='hsl(${h} 28% 65%)' stroke-width='2'/><circle cx='33' cy='41' r='2' fill='#fff'/><circle cx='35' cy='41' r='1' fill='#111'/><path d='M50 42 L58 39 L56 46 Z' fill='hsl(${h} 30% 46%)'/><path d='M25 48 L54 48' stroke='hsl(${h} 20% 54%)' stroke-width='1.6'/><circle cx='20' cy='46' r='1.1'/><circle cx='28' cy='46' r='1.1'/><circle cx='36' cy='46' r='1.1'/><circle cx='44' cy='46' r='1.1'/><circle cx='52' cy='46' r='1.1'/><path d='M64 49 L71 46 L67 54 Z' fill='hsl(${h} 25% 40%)'/><path d='M22 35 L17 30 L21 43 Z' fill='hsl(${h} 26% 35%)'/></svg>`;
   }
   if (name.includes('Harpy') || name.includes('Crow')) {
-    return `<svg viewBox='0 0 60 60'><path d='M8 34 Q30 10 52 34 Q30 28 8 34 Z' fill='hsl(${h} 40% 35%)'/><circle cx='30' cy='35' r='8' fill='hsl(${h} 55% 45%)'/></svg>`;
+    return `<svg viewBox='0 0 80 80'><path d='M8 44 Q40 14 72 44 Q40 34 8 44 Z' fill='hsl(${h} 42% 30%)'/><ellipse cx='40' cy='49' rx='12' ry='10' fill='hsl(${h} 52% 40%)'/><path d='M40 28 L44 37 L36 37 Z' fill='hsl(${h} 60% 55%)'/><circle cx='37' cy='48' r='1.5' fill='#fff'/><circle cx='43' cy='48' r='1.5' fill='#fff'/><path d='M34 56 L40 62 L46 56' stroke='hsl(${h} 30% 70%)' stroke-width='2' fill='none'/><path d='M14 44 L22 50 L16 54 M66 44 L58 50 L64 54' stroke='hsl(${h} 40% 55%)' stroke-width='2'/><circle cx='28' cy='44' r='1'/><circle cx='32' cy='43' r='1'/><circle cx='48' cy='43' r='1'/><circle cx='52' cy='44' r='1'/><path d='M24 37 L30 40 M56 37 L50 40' stroke='hsl(${h} 35% 65%)' stroke-width='1.3'/><circle cx='40' cy='65' r='1.4'/></svg>`;
   }
-  return `<svg viewBox='0 0 60 60'><ellipse cx='30' cy='33' rx='20' ry='16' fill='hsl(${h} 45% 34%)'/><circle cx='22' cy='27' r='5' fill='hsl(${h} 70% 56%)'/><circle cx='38' cy='27' r='5' fill='hsl(${h} 70% 56%)'/></svg>`;
+  return `<svg viewBox='0 0 80 80'><ellipse cx='40' cy='46' rx='24' ry='18' fill='hsl(${h} 40% 30%)'/><circle cx='31' cy='40' r='6' fill='hsl(${h} 68% 56%)'/><circle cx='49' cy='40' r='6' fill='hsl(${h} 68% 56%)'/><circle cx='31' cy='40' r='2' fill='#111'/><circle cx='49' cy='40' r='2' fill='#111'/><path d='M26 53 Q40 60 54 53' stroke='hsl(${h} 25% 72%)' stroke-width='2' fill='none'/><path d='M18 45 L10 42 M62 45 L70 42 M20 52 L12 56 M60 52 L68 56' stroke='hsl(${h} 30% 54%)' stroke-width='2'/><circle cx='24' cy='46' r='1'/><circle cx='30' cy='46' r='1'/><circle cx='36' cy='46' r='1'/><circle cx='44' cy='46' r='1'/><circle cx='50' cy='46' r='1'/><circle cx='56' cy='46' r='1'/><path d='M32 28 L40 18 L48 28' stroke='hsl(${h} 35% 60%)' stroke-width='2' fill='none'/></svg>`;
 }
 
 function respawnMonsters() {
@@ -732,6 +737,39 @@ function drawMonsters() {
     fragment.appendChild(node);
   });
   return fragment;
+}
+
+function openCombatStage(monster) {
+  if (!el.combatStage) return;
+  el.combatStage.classList.remove('hidden');
+  el.combatPlayer.innerHTML = knightSvg(
+    state.player.equipment.weapon?.appearance?.hue ?? 24,
+    state.player.equipment.chestArmor?.appearance?.hue ?? 220,
+    state.player.equipment.necklace?.appearance?.hue ?? 45,
+  );
+  el.combatMonster.innerHTML = monsterSvg(monster.name, monster.hue);
+}
+
+function closeCombatStage() {
+  if (!el.combatStage) return;
+  el.combatStage.classList.add('hidden');
+  if (el.combatPlayerNums) el.combatPlayerNums.innerHTML = '';
+  if (el.combatMonsterNums) el.combatMonsterNums.innerHTML = '';
+}
+
+function combatActorAnimate(target, cls) {
+  target.classList.remove(cls);
+  void target.offsetWidth;
+  target.classList.add(cls);
+}
+
+function showCombatDamage(targetNums, value, crit = false) {
+  if (!targetNums) return;
+  const n = document.createElement('div');
+  n.className = `combat-float ${crit ? 'crit' : ''}`;
+  n.textContent = `${value}`;
+  targetNums.appendChild(n);
+  setTimeout(() => n.remove(), 850);
 }
 
 function bindTabs() {
@@ -970,11 +1008,13 @@ function checkEncounter() {
   const m = state.monsters.find((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= 1);
   if (!m) {
     el.encounter.textContent = `Exploring ${zone.name} (${zone.minTier}-${zone.maxTier}). Biome: ${biome}. Terrain load ${travel.stamina.toFixed(2)}x.`;
+    closeCombatStage();
     setExploreActions();
     return;
   }
   state.encounter = m;
   state.mode = 'combat';
+  openCombatStage(m);
   const threat = m.isBoss ? 'Boss' : m.isElite ? 'Elite' : 'Normal';
   el.encounter.textContent = `${threat} ${m.name} confronts you. Intent: ${m.intent}.`;
   el.actions.innerHTML = '';
@@ -985,7 +1025,7 @@ function checkEncounter() {
 
 function combatAction(action) {
   if (!state.encounter) return;
-  if (action === 'withdraw') { state.mode = 'explore'; state.encounter = null; setExploreActions(); return; }
+  if (action === 'withdraw') { state.mode = 'explore'; state.encounter = null; closeCombatStage(); setExploreActions(); return; }
   if (action === 'assess') { el.encounter.textContent = `${state.encounter.name} HP ${Math.max(0, state.encounter.hpNow)} Poise ${Math.max(0, state.encounter.poiseNow)}`; enemyTurn(1); return; }
   if (action === 'guard') { state.player.stamina = clamp(state.player.stamina + 8, 0, 100); enemyTurn(0.6); return; }
   if (action === 'dodge') { state.player.stamina = clamp(state.player.stamina - 6, 0, 100); enemyTurn(0.35); return; }
@@ -999,12 +1039,17 @@ function combatAction(action) {
     state.player.skillCooldowns.powerStrike = 3;
   }
   animatePlayerAttack(state.encounter.uid);
+  if (el.combatPlayer) combatActorAnimate(el.combatPlayer, 'attack');
   const weaponType = weaponTypeFromItem(state.player.equipment.weapon);
   addWeaponProficiencyXP(weaponType, action === 'power strike' ? 55 : 30);
   const dmgBase = Math.floor((totalStat('damage') + state.player.stats.strength * 2 + rand(4, 10)) * (1 + proficiencyDamageBonus(weaponType)));
   const dmg = action === 'power strike' ? Math.floor(dmgBase * 1.65) : dmgBase;
-  if (Math.random() < (0.58 + totalStat('crit') * 0.01)) state.encounter.hpNow -= Math.floor(dmg * 1.5);
-  else state.encounter.hpNow -= dmg;
+  let dealt = dmg;
+  let crit = false;
+  if (Math.random() < (0.58 + totalStat('crit') * 0.01)) { dealt = Math.floor(dmg * 1.5); crit = true; }
+  state.encounter.hpNow -= dealt;
+  if (el.combatMonster) combatActorAnimate(el.combatMonster, 'hit');
+  showCombatDamage(el.combatMonsterNums, dealt, crit);
   enemyTurn(1);
   if (state.encounter.hpNow <= 0) {
     addLog(`Defeated ${state.encounter.name}.`);
@@ -1021,6 +1066,7 @@ function combatAction(action) {
     state.monsters = state.monsters.filter((m) => m.uid !== state.encounter.uid);
     state.encounter = null;
     state.mode = 'explore';
+    closeCombatStage();
     setExploreActions();
     updateQuestTracker();
   }
@@ -1064,6 +1110,9 @@ function enemyTurn(mult) {
   state.encounter.intent = Math.random() > 0.6 ? 'Heavy Blow' : 'Quick Slash';
   const fatiguePenalty = 1 + state.player.fatigue / 220;
   const hit = Math.max(1, Math.floor((state.encounter.attack + rand(0, 7)) * mult * fatiguePenalty - totalStat('defense') * 0.35));
+  if (el.combatMonster) combatActorAnimate(el.combatMonster, 'attack');
+  if (el.combatPlayer) combatActorAnimate(el.combatPlayer, 'hit');
+  showCombatDamage(el.combatPlayerNums, hit, false);
   animatePlayerHurt();
   state.player.hp -= hit;
   if (state.player.hp <= 0) { addLog('You fell in battle. Refresh to restart.'); }

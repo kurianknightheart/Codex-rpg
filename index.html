@@ -24,6 +24,17 @@
     <section id="screen-map" class="screen active">
       <div class="world" id="world">
         <div class="player" id="player"></div>
+        <div id="combatStage" class="combat-stage hidden">
+          <div class="combat-side">
+            <div id="combatPlayer" class="combat-actor"></div>
+            <div id="combatPlayerNums" class="combat-numbers"></div>
+          </div>
+          <div class="combat-vs">VS</div>
+          <div class="combat-side">
+            <div id="combatMonster" class="combat-actor"></div>
+            <div id="combatMonsterNums" class="combat-numbers"></div>
+          </div>
+        </div>
         <div id="lootDrop" class="loot-drop" aria-live="polite"></div>
         <div id="levelUpPanel" class="levelup-panel hidden" aria-live="polite">
           <h3>Level Up!</h3>

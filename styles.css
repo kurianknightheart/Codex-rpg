@@ -40,6 +40,20 @@ body { margin: 0; color: var(--text); background: radial-gradient(circle at top,
   text-shadow:0 0 12px rgba(255,220,153,.6);
   box-shadow:0 0 18px rgba(255,210,129,.45), inset 0 0 16px rgba(255,220,150,.15);
 }
+.combat-stage{position:absolute;inset:0;z-index:32;background:radial-gradient(circle at center,rgba(38,28,52,.92),rgba(15,11,22,.94));display:grid;grid-template-columns:1fr auto 1fr;align-items:center;justify-items:center;padding:1rem;backdrop-filter:blur(1.5px)}
+.combat-stage.hidden{display:none}
+.combat-side{position:relative;display:grid;place-items:center;width:100%;height:100%}
+.combat-actor{width:140px;height:180px;display:grid;place-items:center;filter:drop-shadow(0 8px 10px rgba(0,0,0,.55))}
+.combat-actor svg{width:100%;height:100%}
+.combat-vs{font-size:1.1rem;letter-spacing:.18em;color:#d9b378;font-weight:800;text-shadow:0 0 12px rgba(217,179,120,.45)}
+.combat-numbers{position:absolute;inset:0;pointer-events:none}
+.combat-float{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:1rem;font-weight:700;color:#f2e7d6;animation:floatDmg .8s ease-out forwards;text-shadow:0 1px 3px rgba(0,0,0,.65)}
+.combat-float.crit{color:#ffd64f;font-size:1.2rem;font-weight:900}
+@keyframes floatDmg{0%{opacity:0;transform:translate(-50%,-20%)}20%{opacity:1}100%{opacity:0;transform:translate(-50%,-140%)}}
+.combat-actor.attack{animation:combatSwing .26s ease-out}
+.combat-actor.hit{animation:combatHit .24s ease-out}
+@keyframes combatSwing{0%{transform:translateX(0)}50%{transform:translateX(10px) scale(1.03)}100%{transform:translateX(0)}}
+@keyframes combatHit{0%{transform:scale(1)}35%{transform:scale(1.08)}100%{transform:scale(1)}}
 .loot-drop.show{animation:lootFade 2s ease-out forwards}
 @keyframes lootFade{
   0%{opacity:0;transform:translate(-50%,-46%) scale(.92)}
