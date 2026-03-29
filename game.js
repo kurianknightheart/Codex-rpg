@@ -34,6 +34,12 @@ const SLOT_LABELS = {
   trinket2: 'Trinket 2',
 };
 const WEAPON_TYPES = ['sword', 'spear', 'falchion', 'mace', 'warpick'];
+const SKILLS = {
+  heroicSlash: { label: 'Heroic Slash', unlockLevel: 1, mana: 8, cooldown: 1, desc: 'Reliable strike with bonus poise damage.' },
+  whirlwind: { label: 'Whirlwind', unlockLevel: 3, mana: 16, cooldown: 3, desc: 'High pressure attack with higher crit scaling.' },
+  shieldWall: { label: 'Shield Wall', unlockLevel: 4, mana: 12, cooldown: 4, desc: 'Greatly reduces the next incoming hit.' },
+  execute: { label: 'Execute', unlockLevel: 6, mana: 18, cooldown: 3, desc: 'Massive damage if the enemy is wounded.' },
+};
 const WEAPON_PASSIVES = {
   sword: ['Balanced Edge (+2% crit)', 'Duelist Rhythm (+4% damage)', 'Parry Expert (+6% damage)'],
   spear: ['Long Reach (+1 reach)', 'Impaling Thrust (+5% crit)', 'Linebreaker (+8% damage)'],
@@ -59,7 +65,8 @@ const state = {
     xpToNext: 100,
     unspentAttr: 0,
     mana: 40,
-    skillCooldowns: { powerStrike: 0 },
+    skillCooldowns: { powerStrike: 0, heroicSlash: 0, whirlwind: 0, shieldWall: 0, execute: 0 },
+    combatEffects: { shieldWall: 0, evasive: 0 },
     materials: { arcaneDust: 0, ironShard: 0 },
     stash: [],
     weaponProficiency: {},
@@ -957,6 +964,7 @@ function replenishMonsters(targetCount = 14) {
     const t = (pool.length ? pool : state.bestiary)[rand(0, (pool.length ? pool : state.bestiary).length - 1)];
     const isElite = Math.random() < 0.16;
     const isBoss = state.dungeon.active && !state.dungeon.objectiveBossDefeated && (t.isBossTemplate || Math.random() < 0.12);
+    const progressionScale = 1 + Math.max(0, state.player.level - 1) * 0.065 + Math.max(0, zone.maxTier - 1) * 0.08;
     state.monsters.push({
       ...t,
       uid: `m-${Date.now()}-${i}`,
@@ -964,8 +972,9 @@ function replenishMonsters(targetCount = 14) {
       isBoss,
       x: clamp(p.x + rand(-18, 18), 0, MAP_SIZE - 1),
       y: clamp(p.y + rand(-18, 18), 0, MAP_SIZE - 1),
-      hpNow: Math.floor(t.hp * (isBoss ? 2.5 : isElite ? 1.45 : 1)),
+      hpNow: Math.floor(t.hp * progressionScale * (isBoss ? 2.5 : isElite ? 1.45 : 1)),
       poiseNow: t.poise,
+      attack: Math.floor(t.attack * progressionScale),
       intent: 'Strike',
     });
   }
@@ -1149,6 +1158,9 @@ function applySaveData(data) {
     xp: 0,
     xpToNext: 100,
     unspentAttr: 0,
+    mana: 40,
+    skillCooldowns: { powerStrike: 0, heroicSlash: 0, whirlwind: 0, shieldWall: 0, execute: 0 },
+    combatEffects: { shieldWall: 0, evasive: 0 },
     stats: { strength: 7, dexterity: 7, intelligence: 6, endurance: 8, willpower: 6 },
     equipment: {},
     inventory: [],
@@ -1162,6 +1174,9 @@ function applySaveData(data) {
     level: Number.isFinite(data.player.level) ? data.player.level : 1,
     xpToNext: Number.isFinite(data.player.xpToNext) ? data.player.xpToNext : 100,
     unspentAttr: Number.isFinite(data.player.unspentAttr) ? data.player.unspentAttr : 0,
+    mana: Number.isFinite(data.player.mana) ? data.player.mana : 40,
+    skillCooldowns: { ...basePlayer.skillCooldowns, ...(data.player.skillCooldowns || {}) },
+    combatEffects: { ...basePlayer.combatEffects, ...(data.player.combatEffects || {}) },
     equipment: { ...(data.player.equipment || {}) },
     inventory: Array.isArray(data.player.inventory) ? data.player.inventory : [],
   };
@@ -1276,11 +1291,24 @@ function engageMonster(monster) {
   openCombatStage(monster);
   const threat = monster.isBoss ? 'Boss' : monster.isElite ? 'Elite' : 'Normal';
   el.encounter.textContent = `${threat} ${monster.name} confronts you. Intent: ${monster.intent}.`;
+  renderCombatActions();
+}
+
+function renderCombatActions() {
   el.actions.innerHTML = '';
   ['Strike', 'Power Strike', 'Guard', 'Dodge', 'Assess', 'Withdraw'].forEach((a) => {
     const b = document.createElement('button');
     b.textContent = a;
     b.addEventListener('click', () => combatAction(a.toLowerCase()));
+    el.actions.appendChild(b);
+  });
+  Object.entries(SKILLS).forEach(([id, skill]) => {
+    if (state.player.level < skill.unlockLevel) return;
+    const b = document.createElement('button');
+    const cd = state.player.skillCooldowns[id] || 0;
+    b.textContent = cd > 0 ? `${skill.label} (${cd})` : `${skill.label}`;
+    b.title = `${skill.desc} Mana ${skill.mana}. CD ${skill.cooldown}.`;
+    b.addEventListener('click', () => combatAction(`skill:${id}`));
     el.actions.appendChild(b);
   });
 }
@@ -1289,8 +1317,8 @@ function combatAction(action) {
   if (!state.encounter) return;
   if (action === 'withdraw') { state.mode = 'explore'; state.encounter = null; closeCombatStage(); setExploreActions(); return; }
   if (action === 'assess') { el.encounter.textContent = `${state.encounter.name} HP ${Math.max(0, state.encounter.hpNow)} Poise ${Math.max(0, state.encounter.poiseNow)}`; enemyTurn(1); return; }
-  if (action === 'guard') { state.player.stamina = clamp(state.player.stamina + 8, 0, 100); enemyTurn(0.6); return; }
-  if (action === 'dodge') { state.player.stamina = clamp(state.player.stamina - 6, 0, 100); enemyTurn(0.35); return; }
+  if (action === 'guard') { state.player.stamina = clamp(state.player.stamina + 8, 0, 100); state.player.combatEffects.shieldWall = Math.max(state.player.combatEffects.shieldWall, 0.3); enemyTurn(0.6); return; }
+  if (action === 'dodge') { state.player.stamina = clamp(state.player.stamina - 6, 0, 100); state.player.combatEffects.evasive = 0.55; enemyTurn(0.35); return; }
   if (action === 'power strike') {
     if (state.player.skillCooldowns.powerStrike > 0 || state.player.mana < 12) {
       addLog('Power Strike is unavailable.');
@@ -1299,6 +1327,79 @@ function combatAction(action) {
     }
     state.player.mana = clamp(state.player.mana - 12, 0, 60);
     state.player.skillCooldowns.powerStrike = 3;
+  }
+  if (action.startsWith('skill:')) {
+    const skillId = action.split(':')[1];
+    const skill = SKILLS[skillId];
+    if (!skill || state.player.level < skill.unlockLevel) return;
+    if ((state.player.skillCooldowns[skillId] || 0) > 0 || state.player.mana < skill.mana) {
+      addLog(`${skill.label} is unavailable.`);
+      enemyTurn(1);
+      return;
+    }
+    state.player.mana = clamp(state.player.mana - skill.mana, 0, 60);
+    state.player.skillCooldowns[skillId] = skill.cooldown;
+    let multiplier = 1.1;
+    let poiseDamage = 7;
+    if (skillId === 'heroicSlash') {
+      multiplier = 1.25;
+      poiseDamage = 12;
+    } else if (skillId === 'whirlwind') {
+      multiplier = 1.4;
+      poiseDamage = 16;
+    } else if (skillId === 'shieldWall') {
+      state.player.combatEffects.shieldWall = 0.75;
+      addLog('Shield Wall raised: incoming damage reduced.');
+      enemyTurn(0.6);
+      updateHud();
+      renderCombatActions();
+      return;
+    } else if (skillId === 'execute') {
+      const hpPct = state.encounter.hpNow / Math.max(1, state.encounter.hp);
+      multiplier = hpPct < 0.35 ? 2.1 : 1.2;
+      poiseDamage = hpPct < 0.35 ? 20 : 8;
+    }
+    animatePlayerAttack(state.encounter.uid);
+    if (el.combatPlayer) combatActorAnimate(el.combatPlayer, 'attack');
+    const weaponType = weaponTypeFromItem(state.player.equipment.weapon);
+    addWeaponProficiencyXP(weaponType, 48);
+    const base = Math.floor((totalStat('damage') + derivedAttr('strength') * 2 + rand(5, 11)) * (1 + proficiencyDamageBonus(weaponType)));
+    let dealt = Math.floor(base * multiplier);
+    let crit = false;
+    const critChance = 0.2 + totalStat('crit') * 0.006 + (skillId === 'whirlwind' ? 0.08 : 0);
+    if (Math.random() < critChance) { dealt = Math.floor(dealt * 1.55); crit = true; }
+    state.encounter.hpNow -= dealt;
+    state.encounter.poiseNow -= poiseDamage;
+    if (state.encounter.poiseNow <= 0) {
+      dealt += Math.floor(base * 0.25);
+      state.encounter.hpNow -= Math.floor(base * 0.25);
+      state.encounter.poiseNow = state.encounter.poise;
+      addLog(`${skill.label} broke enemy poise!`);
+    }
+    if (el.combatMonster) combatActorAnimate(el.combatMonster, 'hit');
+    showCombatDamage(el.combatMonsterNums, dealt, crit);
+    enemyTurn(1);
+    updateHud();
+    renderCombatActions();
+    if (state.encounter?.hpNow > 0) return;
+    addLog(`Defeated ${state.encounter.name}.`);
+    if (state.encounter.isElite || state.encounter.isBoss) progressQuest('hunt-elite', 1);
+    if (state.encounter.isBoss) state.dungeon.objectiveBossDefeated = true;
+    grantXp((state.encounter.tier || 1) * 24 + rand(8, 18));
+    const loot = rollLoot(state.encounter);
+    if (loot) {
+      state.player.inventory.unshift(loot);
+      addLog(`Loot found: ${loot.name}.`);
+      showLootDrop(loot);
+      renderInventory();
+    }
+    state.monsters = state.monsters.filter((m) => m.uid !== state.encounter.uid);
+    state.encounter = null;
+    state.mode = 'explore';
+    closeCombatStage();
+    setExploreActions();
+    updateQuestTracker();
+    return;
   }
   animatePlayerAttack(state.encounter.uid);
   if (el.combatPlayer) combatActorAnimate(el.combatPlayer, 'attack');
@@ -1313,6 +1414,7 @@ function combatAction(action) {
   if (el.combatMonster) combatActorAnimate(el.combatMonster, 'hit');
   showCombatDamage(el.combatMonsterNums, dealt, crit);
   enemyTurn(1);
+  renderCombatActions();
   if (state.encounter.hpNow <= 0) {
     addLog(`Defeated ${state.encounter.name}.`);
     if (state.encounter.isElite || state.encounter.isBoss) progressQuest('hunt-elite', 1);
@@ -1368,27 +1470,45 @@ function slotLabel(slot) {
 
 function enemyTurn(mult) {
   if (!state.encounter) return;
-  state.player.skillCooldowns.powerStrike = Math.max(0, state.player.skillCooldowns.powerStrike - 1);
+  Object.keys(state.player.skillCooldowns).forEach((k) => {
+    state.player.skillCooldowns[k] = Math.max(0, (state.player.skillCooldowns[k] || 0) - 1);
+  });
   state.encounter.intent = Math.random() > 0.6 ? 'Heavy Blow' : 'Quick Slash';
   const fatiguePenalty = 1 + state.player.fatigue / 220;
-  const hit = Math.max(1, Math.floor((state.encounter.attack + rand(0, 7)) * mult * fatiguePenalty - totalStat('defense') * 0.35));
+  const evasive = state.player.combatEffects.evasive || 0;
+  if (Math.random() < evasive) {
+    addLog('You evade the incoming strike.');
+    state.player.combatEffects.evasive = 0;
+    updateHud();
+    renderCombatActions();
+    return;
+  }
+  const shieldWall = state.player.combatEffects.shieldWall || 0;
+  const raw = Math.max(1, Math.floor((state.encounter.attack + rand(0, 7)) * mult * fatiguePenalty - totalStat('defense') * 0.35));
+  const hit = Math.max(1, Math.floor(raw * (1 - shieldWall)));
+  state.player.combatEffects.shieldWall = 0;
+  state.player.combatEffects.evasive = 0;
   if (el.combatMonster) combatActorAnimate(el.combatMonster, 'attack');
   if (el.combatPlayer) combatActorAnimate(el.combatPlayer, 'hit');
   showCombatDamage(el.combatPlayerNums, hit, false);
   animatePlayerHurt();
   state.player.hp -= hit;
+  state.player.mana = clamp(state.player.mana + 4 + Math.floor(derivedAttr('willpower') * 0.15), 0, 60);
   if (state.player.hp <= 0) { addLog('You fell in battle. Refresh to restart.'); }
   updateHud();
+  renderCombatActions();
 }
 
 function grantXp(amount) {
-  state.player.xp += amount;
-  addLog(`Gained ${amount} XP.`);
+  const progressionBonus = 1 + Math.min(0.45, state.player.level * 0.03);
+  const gained = Math.floor(amount * progressionBonus);
+  state.player.xp += gained;
+  addLog(`Gained ${gained} XP.`);
   let leveled = false;
   while (state.player.xp >= state.player.xpToNext) {
     state.player.xp -= state.player.xpToNext;
     state.player.level += 1;
-    state.player.xpToNext = Math.floor(state.player.xpToNext * 1.3);
+    state.player.xpToNext = Math.floor(state.player.xpToNext * 1.22 + 24);
     state.player.unspentAttr += 2;
     leveled = true;
     addLog(`Reached level ${state.player.level}! Choose attributes to improve.`);
