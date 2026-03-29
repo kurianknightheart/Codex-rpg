@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>The Dreadlands v0.2</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app">
+    <header class="hud">
+      <div class="hud-top">
+        <h1>The Dreadlands v0.2</h1>
+        <div class="save-controls">
+          <button id="newGameBtn">New Game</button>
+          <button id="saveBtn">Save</button>
+          <button id="loadBtn">Load</button>
+        </div>
+      </div>
+      <div id="coreStats" class="hud-grid"></div>
+      <div id="resourceBars" class="hud-grid"></div>
+    </header>
+
+    <section id="screen-map" class="screen active">
+      <div class="world" id="world">
+        <div class="player" id="player"></div>
+        <div id="combatStage" class="combat-stage hidden">
+          <div class="combat-side">
+            <div id="combatPlayer" class="combat-actor"></div>
+            <div id="combatPlayerNums" class="combat-numbers"></div>
+          </div>
+          <div class="combat-vs">VS</div>
+          <div class="combat-side">
+            <div id="combatMonster" class="combat-actor"></div>
+            <div id="combatMonsterNums" class="combat-numbers"></div>
+          </div>
+        </div>
+        <div id="lootDrop" class="loot-drop" aria-live="polite"></div>
+        <div id="levelUpPanel" class="levelup-panel hidden" aria-live="polite">
+          <h3>Level Up!</h3>
+          <p id="levelUpText"></p>
+          <div id="levelUpChoices" class="levelup-choices"></div>
+        </div>
+      </div>
+      <div class="controls-row">
+        <div id="encounterPanel" class="encounter">Tap any nearby tile to move there.</div>
+      </div>
+      <div id="questTracker" class="encounter">Quest: --</div>
+      <div class="actions" id="actions"></div>
+    </section>
+
+    <section id="screen-character" class="screen">
+      <div class="equipment-scene">
+        <div class="panel panel-character">
+          <div id="characterPreview" class="character-preview ornate">
+            <div id="equipmentSlots" class="equipment-ring"></div>
+            <div id="equipOverlay" class="equip-overlay"></div>
+          </div>
+        </div>
+        <div class="panel panel-stats">
+          <h3>Champion Stats</h3>
+          <div id="characterStatsPanel" class="character-stats-panel"></div>
+        </div>
+        <div class="panel panel-item">
+          <h3>Selected Item</h3>
+          <div id="itemDetails" class="item-details"></div>
+        </div>
+      </div>
+      <div id="characterDetails" class="character-details"></div>
+      <div class="panel">
+        <h3>Weapon Proficiency</h3>
+        <div id="weaponProficiencyPanel" class="weapon-proficiency-panel"></div>
+      </div>
+    </section>
+
+    <section id="screen-inventory" class="screen">
+      <div class="inv-layout">
+        <div>
+          <div class="inventory-head">
+            <h3>Inventory</h3>
+            <select id="inventoryFilter">
+              <option value="all">All</option>
+              <option value="weapon">Weapon</option>
+              <option value="armor">Armor Pieces</option>
+              <option value="chestArmor">Chest Armor</option>
+              <option value="helmet">Helmet</option>
+              <option value="jewelry">Jewelry</option>
+              <option value="common">Common</option>
+              <option value="rare">Rare</option>
+              <option value="epic">Epic</option>
+              <option value="legendary">Legendary</option>
+            </select>
+          </div>
+          <div id="inventory" class="inventory"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="bottom-nav">
+      <button data-screen="map" class="nav-btn active">Map</button>
+      <button data-screen="character" class="nav-btn">Character</button>
+      <button data-screen="inventory" class="nav-btn">Inventory</button>
+    </footer>
+
+    <footer id="log" class="log"></footer>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
