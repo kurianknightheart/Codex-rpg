@@ -1249,23 +1249,24 @@ function moveStep(ts) {
 }
 
 function checkEncounter() {
+  const p = state.player.pos;
+  const lockRadius = 2;
+  const lockMonster = state.monsters.find((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= lockRadius);
+  if (lockMonster) {
+    engageMonster(lockMonster);
+    return;
+  }
   if (state.destination) {
     const biomeMoving = biomeAt(state.player.pos.x, state.player.pos.y);
     el.encounter.textContent = `Marching... Biome: ${biomeMoving}.`;
     return;
   }
-  const p = state.player.pos;
   const biome = biomeAt(p.x, p.y);
   const zone = zoneAt(p.x, p.y);
   const travel = biomeTravelProfile(biome);
-  const m = state.monsters.find((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= 1);
-  if (!m) {
-    el.encounter.textContent = `Exploring ${zone.name} (${zone.minTier}-${zone.maxTier}). Biome: ${biome}. Terrain load ${travel.stamina.toFixed(2)}x.`;
-    closeCombatStage();
-    setExploreActions();
-    return;
-  }
-  engageMonster(m);
+  el.encounter.textContent = `Exploring ${zone.name} (${zone.minTier}-${zone.maxTier}). Biome: ${biome}. Terrain load ${travel.stamina.toFixed(2)}x.`;
+  closeCombatStage();
+  setExploreActions();
 }
 
 function engageMonster(monster) {
