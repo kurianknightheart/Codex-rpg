@@ -80,6 +80,7 @@ const state = {
   bestiary: [],
   monsters: [],
   encounter: null,
+  encounterGroup: [],
   quests: [{ id: 'hunt-elite', title: 'Cull Elite Threats', objective: 'Defeat 2 elite monsters', progress: 0, goal: 2, done: false }],
   dungeon: { active: false, tier: 1, room: 0, objectiveBossDefeated: false },
   lastRespawnTick: 0,
@@ -952,10 +953,10 @@ function monsterSvg(name, h) {
 function respawnMonsters() {
   if (!state.bestiary.length) return;
   state.monsters = [];
-  replenishMonsters(14);
+  replenishMonsters(24);
 }
 
-function replenishMonsters(targetCount = 14) {
+function replenishMonsters(targetCount = 24) {
   if (!state.bestiary.length) return;
   const p = state.player.pos;
   const zone = zoneAt(p.x, p.y);
@@ -1060,7 +1061,7 @@ function bindMapTap() {
     if (tappedMonsterNode?.dataset?.uid) {
       const tappedMonster = state.monsters.find((m) => m.uid === tappedMonsterNode.dataset.uid);
       if (tappedMonster) {
-        engageMonster(tappedMonster);
+        engageMonsterGroup([tappedMonster]);
         return;
       }
     }
@@ -1108,7 +1109,7 @@ function setExploreActions() {
     state.dungeon.objectiveBossDefeated = false;
     state.dungeon.tier = zoneAt(state.player.pos.x, state.player.pos.y).maxTier;
     state.monsters = [];
-    replenishMonsters(state.dungeon.active ? 8 : 14);
+    replenishMonsters(state.dungeon.active ? 12 : 24);
     addLog(state.dungeon.active ? `Entered dungeon tier ${state.dungeon.tier}.` : 'Returned to the overworld.');
     setExploreActions();
   });
@@ -1141,6 +1142,7 @@ function exportSave() {
     player: state.player,
     monsters: state.monsters,
     encounter: state.encounter,
+    encounterGroup: state.encounterGroup,
     quests: state.quests,
     dungeon: state.dungeon,
   };
@@ -1187,6 +1189,7 @@ function applySaveData(data) {
   ensureWeaponProficiency();
   state.monsters = Array.isArray(data.monsters) ? data.monsters : [];
   state.encounter = data.encounter ?? null;
+  state.encounterGroup = Array.isArray(data.encounterGroup) ? data.encounterGroup : (state.encounter ? [state.encounter] : []);
   state.quests = Array.isArray(data.quests) ? data.quests : state.quests;
   state.dungeon = data.dungeon || state.dungeon;
   if (version < 2) {
@@ -1248,6 +1251,8 @@ function hardResetGame() {
 function handlePlayerDefeat() {
   state.mode = 'defeated';
   state.destination = null;
+  state.encounter = null;
+  state.encounterGroup = [];
   closeCombatStage();
   el.actions.innerHTML = '';
   el.encounter.textContent = 'Defeat. You were overwhelmed in the Dreadlands... restarting.';
@@ -1279,15 +1284,15 @@ function moveStep(ts) {
   renderMapChunk();
   updateHud();
   checkEncounter();
-  if (state.monsters.length < 6) replenishMonsters(14);
+  if (state.monsters.length < 12) replenishMonsters(24);
 }
 
 function checkEncounter() {
   const p = state.player.pos;
-  const lockRadius = 2;
-  const lockMonster = state.monsters.find((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= lockRadius && (x.hpNow ?? x.hp) > 0);
-  if (lockMonster) {
-    engageMonster(lockMonster);
+  const lockRadius = 3;
+  const lockMonsters = state.monsters.filter((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= lockRadius && (x.hpNow ?? x.hp) > 0);
+  if (lockMonsters.length) {
+    engageMonsterGroup(lockMonsters);
     return;
   }
   if (state.destination) {
@@ -1303,24 +1308,31 @@ function checkEncounter() {
   setExploreActions();
 }
 
-function engageMonster(monster) {
-  if (!monster) return;
-  monster.hpNow = Number.isFinite(monster.hpNow) ? monster.hpNow : Math.max(1, monster.hp || 1);
-  monster.poiseNow = Number.isFinite(monster.poiseNow) ? monster.poiseNow : Math.max(1, monster.poise || 1);
-  monster.attack = Number.isFinite(monster.attack) ? monster.attack : Math.max(1, 8 + (monster.tier || 1));
-  if (monster.hpNow <= 0) return;
+function engageMonsterGroup(monsters) {
+  if (!monsters?.length) return;
+  const normalized = monsters
+    .map((monster) => {
+      monster.hpNow = Number.isFinite(monster.hpNow) ? monster.hpNow : Math.max(1, monster.hp || 1);
+      monster.poiseNow = Number.isFinite(monster.poiseNow) ? monster.poiseNow : Math.max(1, monster.poise || 1);
+      monster.attack = Number.isFinite(monster.attack) ? monster.attack : Math.max(1, 8 + (monster.tier || 1));
+      return monster;
+    })
+    .filter((monster) => monster.hpNow > 0);
+  if (!normalized.length) return;
   state.destination = null;
-  state.encounter = monster;
+  state.encounterGroup = normalized;
+  state.encounter = normalized[0];
   state.mode = 'combat';
-  openCombatStage(monster);
-  const threat = monster.isBoss ? 'Boss' : monster.isElite ? 'Elite' : 'Normal';
-  el.encounter.textContent = `${threat} ${monster.name} confronts you. Intent: ${monster.intent}.`;
+  openCombatStage(state.encounter);
+  const names = normalized.slice(0, 3).map((m) => m.name).join(', ');
+  const extra = normalized.length > 3 ? ` +${normalized.length - 3} more` : '';
+  el.encounter.textContent = `Enemies engaged (${normalized.length}): ${names}${extra}.`;
   renderCombatActions();
 }
 
 function renderCombatActions() {
   el.actions.innerHTML = '';
-  ['Strike', 'Power Strike', 'Guard', 'Dodge', 'Assess', 'Withdraw'].forEach((a) => {
+  ['Strike', 'Power Strike', 'Guard', 'Dodge', 'Assess'].forEach((a) => {
     const b = document.createElement('button');
     b.textContent = a;
     b.addEventListener('click', () => combatAction(a.toLowerCase()));
@@ -1339,7 +1351,6 @@ function renderCombatActions() {
 
 function combatAction(action) {
   if (!state.encounter) return;
-  if (action === 'withdraw') { state.mode = 'explore'; state.encounter = null; closeCombatStage(); setExploreActions(); return; }
   if (action === 'assess') { el.encounter.textContent = `${state.encounter.name} HP ${Math.max(0, state.encounter.hpNow)} Poise ${Math.max(0, state.encounter.poiseNow)}`; enemyTurn(1); return; }
   if (action === 'guard') { state.player.stamina = clamp(state.player.stamina + 8, 0, 100); state.player.combatEffects.shieldWall = Math.max(state.player.combatEffects.shieldWall, 0.3); enemyTurn(0.6); return; }
   if (action === 'dodge') { state.player.stamina = clamp(state.player.stamina - 6, 0, 100); state.player.combatEffects.evasive = 0.55; enemyTurn(0.35); return; }
@@ -1406,23 +1417,7 @@ function combatAction(action) {
     updateHud();
     renderCombatActions();
     if (state.encounter?.hpNow > 0) return;
-    addLog(`Defeated ${state.encounter.name}.`);
-    if (state.encounter.isElite || state.encounter.isBoss) progressQuest('hunt-elite', 1);
-    if (state.encounter.isBoss) state.dungeon.objectiveBossDefeated = true;
-    grantXp((state.encounter.tier || 1) * 24 + rand(8, 18));
-    const loot = rollLoot(state.encounter);
-    if (loot) {
-      state.player.inventory.unshift(loot);
-      addLog(`Loot found: ${loot.name}.`);
-      showLootDrop(loot);
-      renderInventory();
-    }
-    state.monsters = state.monsters.filter((m) => m.uid !== state.encounter.uid);
-    state.encounter = null;
-    state.mode = 'explore';
-    closeCombatStage();
-    setExploreActions();
-    updateQuestTracker();
+    resolveEncounterKill();
     return;
   }
   animatePlayerAttack(state.encounter.uid);
@@ -1440,24 +1435,39 @@ function combatAction(action) {
   enemyTurn(1);
   renderCombatActions();
   if (state.encounter.hpNow <= 0) {
-    addLog(`Defeated ${state.encounter.name}.`);
-    if (state.encounter.isElite || state.encounter.isBoss) progressQuest('hunt-elite', 1);
-    if (state.encounter.isBoss) state.dungeon.objectiveBossDefeated = true;
-    grantXp((state.encounter.tier || 1) * 24 + rand(8, 18));
-    const loot = rollLoot(state.encounter);
-    if (loot) {
-      state.player.inventory.unshift(loot);
-      addLog(`Loot found: ${loot.name}.`);
-      showLootDrop(loot);
-      renderInventory();
-    }
-    state.monsters = state.monsters.filter((m) => m.uid !== state.encounter.uid);
-    state.encounter = null;
-    state.mode = 'explore';
-    closeCombatStage();
-    setExploreActions();
-    updateQuestTracker();
+    resolveEncounterKill();
   }
+}
+
+function resolveEncounterKill() {
+  const defeated = state.encounter;
+  if (!defeated) return;
+  addLog(`Defeated ${defeated.name}.`);
+  if (defeated.isElite || defeated.isBoss) progressQuest('hunt-elite', 1);
+  if (defeated.isBoss) state.dungeon.objectiveBossDefeated = true;
+  grantXp((defeated.tier || 1) * 24 + rand(8, 18));
+  const loot = rollLoot(defeated);
+  if (loot) {
+    state.player.inventory.unshift(loot);
+    addLog(`Loot found: ${loot.name}.`);
+    showLootDrop(loot);
+    renderInventory();
+  }
+  state.monsters = state.monsters.filter((m) => m.uid !== defeated.uid);
+  state.encounterGroup = (state.encounterGroup || []).filter((m) => m.uid !== defeated.uid && (m.hpNow ?? m.hp) > 0);
+  if (state.encounterGroup.length > 0) {
+    state.encounter = state.encounterGroup[0];
+    openCombatStage(state.encounter);
+    el.encounter.textContent = `Enemies remaining: ${state.encounterGroup.length}. Target: ${state.encounter.name}.`;
+    renderCombatActions();
+    updateQuestTracker();
+    return;
+  }
+  state.encounter = null;
+  state.mode = 'explore';
+  closeCombatStage();
+  setExploreActions();
+  updateQuestTracker();
 }
 
 function rollLoot(monster) {
@@ -1507,9 +1517,14 @@ function enemyTurn(mult) {
     renderCombatActions();
     return;
   }
+  const attackers = (state.encounterGroup?.length ? state.encounterGroup : [state.encounter]).filter((m) => (m.hpNow ?? m.hp) > 0);
   const shieldWall = state.player.combatEffects.shieldWall || 0;
-  const raw = Math.max(1, Math.floor((state.encounter.attack + rand(0, 7)) * mult * fatiguePenalty - totalStat('defense') * 0.35));
-  const hit = Math.max(1, Math.floor(raw * (1 - shieldWall)));
+  let hit = 0;
+  attackers.forEach((attacker, idx) => {
+    const raw = Math.max(1, Math.floor((attacker.attack + rand(0, 7)) * mult * fatiguePenalty - totalStat('defense') * 0.35));
+    const reduced = Math.max(1, Math.floor(raw * (idx === 0 ? (1 - shieldWall) : 1)));
+    hit += reduced;
+  });
   state.player.combatEffects.shieldWall = 0;
   state.player.combatEffects.evasive = 0;
   if (el.combatMonster) combatActorAnimate(el.combatMonster, 'attack');
@@ -1590,8 +1605,8 @@ function gameLoop(ts = 0) {
   moveStep(ts);
   const daylight = 0.72 + Math.sin(state.day * 0.24) * 0.18;
   el.world.style.filter = `brightness(${daylight.toFixed(2)}) saturate(1.05)`;
-  if (ts - state.lastRespawnTick > 7000) {
-    replenishMonsters(14);
+  if (ts - state.lastRespawnTick > 3500) {
+    replenishMonsters(24);
     state.lastRespawnTick = ts;
   }
   requestAnimationFrame(gameLoop);
