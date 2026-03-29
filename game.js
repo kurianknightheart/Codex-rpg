@@ -1052,6 +1052,10 @@ function bindTapAction(node, handler) {
 
 function bindMapTap() {
   const onTap = (clientX, clientY, sourceTarget = null) => {
+    if (state.mode === 'combat') {
+      el.encounter.textContent = `Combat locked: defeat ${state.encounter?.name || 'the enemy'} to move again.`;
+      return;
+    }
     const tappedMonsterNode = sourceTarget?.closest?.('.monster') || document.elementFromPoint(clientX, clientY)?.closest?.('.monster');
     if (tappedMonsterNode?.dataset?.uid) {
       const tappedMonster = state.monsters.find((m) => m.uid === tappedMonsterNode.dataset.uid);
@@ -1233,11 +1237,26 @@ function loadGame() {
 function startNewGame() {
   const confirmed = window.confirm('Start a new game? This will delete your current saved progress.');
   if (!confirmed) return;
+  hardResetGame();
+}
+
+function hardResetGame() {
   localStorage.removeItem(SAVE_KEY);
   window.location.reload();
 }
 
+function handlePlayerDefeat() {
+  state.mode = 'defeated';
+  state.destination = null;
+  closeCombatStage();
+  el.actions.innerHTML = '';
+  el.encounter.textContent = 'Defeat. You were overwhelmed in the Dreadlands... restarting.';
+  addLog('You fell in battle. A new expedition begins.');
+  setTimeout(() => hardResetGame(), 900);
+}
+
 function moveStep(ts) {
+  if (state.mode === 'combat') return;
   if (!state.destination || state.mode !== 'explore') return;
   if (ts - state.lastStep < state.stepMs) return;
   state.lastStep = ts;
@@ -1266,7 +1285,7 @@ function moveStep(ts) {
 function checkEncounter() {
   const p = state.player.pos;
   const lockRadius = 2;
-  const lockMonster = state.monsters.find((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= lockRadius);
+  const lockMonster = state.monsters.find((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= lockRadius && (x.hpNow ?? x.hp) > 0);
   if (lockMonster) {
     engageMonster(lockMonster);
     return;
@@ -1285,6 +1304,11 @@ function checkEncounter() {
 }
 
 function engageMonster(monster) {
+  if (!monster) return;
+  monster.hpNow = Number.isFinite(monster.hpNow) ? monster.hpNow : Math.max(1, monster.hp || 1);
+  monster.poiseNow = Number.isFinite(monster.poiseNow) ? monster.poiseNow : Math.max(1, monster.poise || 1);
+  monster.attack = Number.isFinite(monster.attack) ? monster.attack : Math.max(1, 8 + (monster.tier || 1));
+  if (monster.hpNow <= 0) return;
   state.destination = null;
   state.encounter = monster;
   state.mode = 'combat';
@@ -1494,7 +1518,7 @@ function enemyTurn(mult) {
   animatePlayerHurt();
   state.player.hp -= hit;
   state.player.mana = clamp(state.player.mana + 4 + Math.floor(derivedAttr('willpower') * 0.15), 0, 60);
-  if (state.player.hp <= 0) { addLog('You fell in battle. Refresh to restart.'); }
+  if (state.player.hp <= 0) { handlePlayerDefeat(); return; }
   updateHud();
   renderCombatActions();
 }
