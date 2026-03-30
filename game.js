@@ -1,6 +1,7 @@
 const MAP_SIZE = 2048;
 const VIEW_RADIUS = 11;
 const SAVE_VERSION = 2;
+const AGGRO_RADIUS = 3;
 const CONTENT = {
   zones: [
     { id: 'ashen-approach', name: 'Ashen Approach', minTier: 1, maxTier: 1, minDist: 0, maxDist: 120 },
@@ -989,7 +990,7 @@ function drawMonsters() {
     const node = document.createElement('div');
     node.className = 'monster';
     node.dataset.uid = m.uid;
-    node.innerHTML = monsterSvg(m.name, m.hue);
+    node.innerHTML = `<div class="monster-aggro-ring"></div>${monsterSvg(m.name, m.hue)}`;
     const p = iso(m.x - px + VIEW_RADIUS, m.y - py + VIEW_RADIUS);
     node.style.left = `${p.x + 38}px`;
     node.style.top = `${p.y + 24}px`;
@@ -1289,8 +1290,7 @@ function moveStep(ts) {
 
 function checkEncounter() {
   const p = state.player.pos;
-  const lockRadius = 3;
-  const lockMonsters = state.monsters.filter((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= lockRadius && (x.hpNow ?? x.hp) > 0);
+  const lockMonsters = state.monsters.filter((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= AGGRO_RADIUS && (x.hpNow ?? x.hp) > 0);
   if (lockMonsters.length) {
     engageMonsterGroup(lockMonsters);
     return;
@@ -1603,6 +1603,7 @@ function animatePlayerHurt() {
 
 function gameLoop(ts = 0) {
   moveStep(ts);
+  if (state.mode === 'explore') checkEncounter();
   const daylight = 0.72 + Math.sin(state.day * 0.24) * 0.18;
   el.world.style.filter = `brightness(${daylight.toFixed(2)}) saturate(1.05)`;
   if (ts - state.lastRespawnTick > 3500) {
