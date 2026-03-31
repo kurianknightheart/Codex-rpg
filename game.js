@@ -1000,7 +1000,8 @@ function drawMonsters() {
   state.monsters.forEach((m) => {
     if (Math.abs(m.x - px) > VIEW_RADIUS || Math.abs(m.y - py) > VIEW_RADIUS) return;
     const node = document.createElement('div');
-    node.className = 'monster';
+    const tileDist = Math.max(Math.abs(m.x - px), Math.abs(m.y - py));
+    node.className = `monster${tileDist <= 5 ? ' aggro-near' : ''}`;
     node.dataset.uid = m.uid;
     node.innerHTML = `<div class="monster-aggro-ring"></div><div class="monster-label">${m.name} · Lv ${m.tier}</div>${monsterSvg(m.name, m.hue)}`;
     const p = iso(m.x - px + VIEW_RADIUS, m.y - py + VIEW_RADIUS);

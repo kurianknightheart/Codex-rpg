@@ -102,20 +102,28 @@ body { margin: 0; color: var(--text); background: radial-gradient(circle at top,
 .patch.ash{background:radial-gradient(circle at 35% 35%, #7a7481, #4c4952 73%)}
 .patch.moor{background:radial-gradient(circle at 35% 35%, #6e7150, #44462f 72%)}
 .monster { position: absolute; width: 46px; height: 46px; transform: translate(-50%,-50%); z-index: 4; animation: bob .9s ease-in-out infinite alternate; pointer-events:none; }
-.monster svg{width:100%;height:100%}
+.monster svg{width:100%;height:100%;position:relative;z-index:5}
 .monster-aggro-ring{
   position:absolute;
   left:50%;
   top:50%;
-  width:140px;
-  height:74px;
+  width:116px;
+  height:116px;
   transform:translate(-50%,-50%);
-  border:2px solid rgba(255,86,86,.65);
+  border:2px solid rgba(255, 166, 64, .68);
   border-radius:50%;
-  background:radial-gradient(ellipse at center, rgba(255,76,76,.16), rgba(255,76,76,.06) 62%, transparent 76%);
-  box-shadow:0 0 16px rgba(255,86,86,.3), inset 0 0 12px rgba(255,86,86,.2);
+  background:radial-gradient(circle at center, rgba(255, 168, 66, .14), rgba(255, 147, 38, .08) 62%, rgba(255, 139, 22, 0) 76%);
+  box-shadow:0 0 18px rgba(255, 155, 44, .30), inset 0 0 14px rgba(255, 174, 88, .24);
   pointer-events:none;
-  z-index:6;
+  z-index:12;
+  opacity:.88;
+  transition:border-color .2s ease, box-shadow .2s ease, background .2s ease, opacity .2s ease;
+}
+.monster.aggro-near .monster-aggro-ring{
+  border-color:rgba(255, 196, 96, .94);
+  background:radial-gradient(circle at center, rgba(255, 190, 92, .23), rgba(255, 158, 52, .14) 62%, rgba(255, 143, 28, 0) 78%);
+  box-shadow:0 0 22px rgba(255, 174, 67, .54), inset 0 0 16px rgba(255, 211, 133, .36);
+  opacity:1;
 }
 .monster-label{
   position:absolute;
