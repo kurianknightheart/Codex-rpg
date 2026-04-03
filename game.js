@@ -132,7 +132,7 @@ function getKnightAppearance() {
   const eq = state.player.equipment || {};
   return {
     weaponHue: eq.weapon?.appearance?.hue ?? 24,
-    armorHue: eq.chestArmor?.appearance?.hue ?? eq.armor?.appearance?.hue ?? null,
+    armorHue: 214,
     trimHue: eq.necklace?.appearance?.hue ?? eq.ring1?.appearance?.hue ?? 45,
     clothHue: eq.chestArmor?.appearance?.hue ?? eq.cape?.appearance?.hue ?? eq.gloves?.appearance?.hue ?? 280,
     leatherHue: eq.boots?.appearance?.hue ?? eq.leggings?.appearance?.hue ?? 30,
@@ -154,7 +154,7 @@ function getKnightAppearance() {
 
 function knightSvg({
   weaponHue = 24,
-  armorHue = 220,
+  armorHue = 214,
   trimHue = 45,
   clothHue = 280,
   leatherHue = 30,
@@ -172,9 +172,9 @@ function knightSvg({
   hasRing1 = false,
   hasRing2 = false,
 } = {}) {
-  /* Battle Brothers-style chunky warrior — bold outlines, earthy palette, 2.5D ground shadow */
+  /* Battle Brothers-style chunky warrior — bold outlines, silvery armor palette, stronger 2.5D depth */
   const S = '#0d0a06';
-  const bodyFill = hasChest ? `hsl(${armorHue} 26% 44%)` : `hsl(${clothHue} 28% 36%)`;
+  const bodyFill = hasChest ? `hsl(${armorHue} 16% 50%)` : `hsl(${clothHue} 28% 36%)`;
   return `<svg viewBox='0 0 120 160' xmlns='http://www.w3.org/2000/svg'>
   <defs>
     <linearGradient id='kSkin' x1='0' y1='0' x2='0' y2='1'>
@@ -182,15 +182,25 @@ function knightSvg({
       <stop offset='100%' stop-color='hsl(28 42% 58%)'/>
     </linearGradient>
     <linearGradient id='kArmor' x1='0' y1='0' x2='0' y2='1'>
-      <stop offset='0%'   stop-color='hsl(${armorHue} 26% 58%)'/>
-      <stop offset='100%' stop-color='hsl(${armorHue} 18% 28%)'/>
+      <stop offset='0%'   stop-color='hsl(${armorHue} 18% 84%)'/>
+      <stop offset='48%'  stop-color='hsl(${armorHue} 14% 66%)'/>
+      <stop offset='100%' stop-color='hsl(${armorHue} 16% 32%)'/>
+    </linearGradient>
+    <linearGradient id='kArmorEdge' x1='0' y1='0' x2='1' y2='1'>
+      <stop offset='0%'   stop-color='hsl(${armorHue} 22% 88%)'/>
+      <stop offset='100%' stop-color='hsl(${armorHue} 16% 38%)'/>
     </linearGradient>
     <radialGradient id='kBodyLight' cx='38%' cy='28%' r='58%'>
       <stop offset='0%'   stop-color='rgba(255,230,180,.18)'/>
       <stop offset='100%' stop-color='rgba(0,0,0,0)'/>
     </radialGradient>
+    <radialGradient id='kFaceShade' cx='50%' cy='28%' r='70%'>
+      <stop offset='0%' stop-color='rgba(255,228,186,.36)'/>
+      <stop offset='100%' stop-color='rgba(70,38,20,.28)'/>
+    </radialGradient>
   </defs>
-  <ellipse cx='60' cy='154' rx='23' ry='5' fill='rgba(0,0,0,0.42)'/>
+  <ellipse cx='60' cy='154' rx='27' ry='5.8' fill='rgba(0,0,0,0.36)'/>
+  <ellipse cx='60' cy='154' rx='20' ry='3.8' fill='rgba(255,255,255,0.07)'/>
   ${hasCape ? `<path d='M40 65 Q28 108 30 150 L54 150 L52 65 Z' fill='hsl(${clothHue} 30% 20%)' stroke='${S}' stroke-width='1.8' opacity='.9'/>
   <path d='M80 65 Q92 108 90 150 L66 150 L68 65 Z' fill='hsl(${clothHue} 30% 20%)' stroke='${S}' stroke-width='1.8' opacity='.9'/>` : ''}
   <g class='limb leg-left'>
@@ -203,15 +213,20 @@ function knightSvg({
   </g>
   <rect x='37' y='64' width='46' height='46' rx='9' fill='${bodyFill}' stroke='${S}' stroke-width='2.6'/>
   <rect x='37' y='64' width='46' height='46' rx='9' fill='url(#kBodyLight)' stroke='none'/>
-  ${hasChest ? `<path d='M44 68 L76 68 L78 92 L42 92 Z' fill='hsl(${armorHue} 22% 50%)' stroke='${S}' stroke-width='1.6'/>
-  <path d='M52 68 L68 68 L70 82 L50 82 Z' fill='hsl(${armorHue} 28% 58%)' opacity='.7'/>
-  <line x1='60' y1='68' x2='60' y2='92' stroke='hsl(${trimHue} 56% 48%)' stroke-width='1.3'/>
-  <line x1='44' y1='78' x2='76' y2='78' stroke='hsl(${trimHue} 50% 44%)' stroke-width='1'/>
-  <line x1='44' y1='86' x2='76' y2='86' stroke='hsl(${trimHue} 46% 40%)' stroke-width='.9'/>` : ''}
+  ${hasChest ? `<path d='M44 68 L76 68 L78 92 L42 92 Z' fill='url(#kArmor)' stroke='${S}' stroke-width='1.6'/>
+  <path d='M52 68 L68 68 L70 82 L50 82 Z' fill='url(#kArmorEdge)' opacity='.88'/>
+  <path d='M46 70 L74 70 L75 76 L45 76 Z' fill='rgba(255,255,255,.15)'/>
+  <line x1='60' y1='68' x2='60' y2='92' stroke='hsl(${trimHue} 44% 54%)' stroke-width='1.3'/>
+  <line x1='44' y1='78' x2='76' y2='78' stroke='hsl(${trimHue} 34% 44%)' stroke-width='1'/>
+  <line x1='44' y1='86' x2='76' y2='86' stroke='hsl(${trimHue} 32% 40%)' stroke-width='.9'/>
+  <circle cx='49' cy='83' r='1.25' fill='hsl(${trimHue} 30% 68%)'/>
+  <circle cx='71' cy='83' r='1.25' fill='hsl(${trimHue} 30% 68%)'/>` : ''}
   <ellipse cx='35' cy='70' rx='11' ry='7' fill='${bodyFill}' stroke='${S}' stroke-width='2.2'/>
   <ellipse cx='85' cy='70' rx='11' ry='7' fill='${bodyFill}' stroke='${S}' stroke-width='2.2'/>
   ${hasChest ? `<ellipse cx='35' cy='70' rx='9' ry='5.5' fill='url(#kArmor)' stroke='none'/>
-  <ellipse cx='85' cy='70' rx='9' ry='5.5' fill='url(#kArmor)' stroke='none'/>` : ''}
+  <ellipse cx='85' cy='70' rx='9' ry='5.5' fill='url(#kArmor)' stroke='none'/>
+  <ellipse cx='35' cy='68.5' rx='6' ry='2.6' fill='rgba(255,255,255,.16)'/>
+  <ellipse cx='85' cy='68.5' rx='6' ry='2.6' fill='rgba(255,255,255,.16)'/>` : ''}
   <g class='limb arm-left'>
     <rect x='27' y='68' width='15' height='40' rx='7' fill='${hasGloves ? `url(#kArmor)` : `url(#kSkin)`}' stroke='${S}' stroke-width='2.2'/>
     ${hasGloves ? `<rect x='26' y='98' width='17' height='14' rx='6' fill='hsl(${armorHue} 20% 26%)' stroke='${S}' stroke-width='1.8'/>` : ''}
@@ -233,6 +248,7 @@ function knightSvg({
   <line x1='89' y1='62' x2='97' y2='62' stroke='hsl(${weaponHue} 28% 48%)' stroke-width='1'/></g>` : ''}
   ${!hasHelmet ? `<path d='M43 44 Q44 20 60 18 Q76 20 77 44 L75 40 Q60 24 45 40 Z' fill='hsl(38 60% 40%)' stroke='${S}' stroke-width='1.8'/>` : ''}
   <circle cx='60' cy='44' r='20' fill='url(#kSkin)' stroke='${S}' stroke-width='2.6'/>
+  <circle cx='60' cy='44' r='20' fill='url(#kFaceShade)' stroke='none' opacity='.42'/>
   ${hasHelmet ? `<path d='M40 44 Q42 18 60 16 Q78 18 80 44 L77 54 L43 54 Z' fill='hsl(${helmHue} 24% 44%)' stroke='${S}' stroke-width='2.2'/>
   <path d='M48 44 L72 44 L69 54 L51 54 Z' fill='hsl(${helmHue} 18% 20%)' stroke='${S}' stroke-width='1.5'/>
   <path d='M57 17 L60 12 L63 17' fill='hsl(${trimHue} 66% 52%)' stroke='${S}' stroke-width='1.2'/>
@@ -244,9 +260,15 @@ function knightSvg({
   <circle cx='67' cy='43' r='1.5' fill='#14100a'/>
   <circle cx='52' cy='42' r='.6' fill='rgba(255,255,255,.55)'/>
   <circle cx='66' cy='42' r='.6' fill='rgba(255,255,255,.55)'/>
+  <path d='M49.2 43.5 Q53 46 56.8 43.5' stroke='rgba(255,255,255,.2)' stroke-width='.6' fill='none'/>
+  <path d='M63.2 43.5 Q67 46 70.8 43.5' stroke='rgba(255,255,255,.2)' stroke-width='.6' fill='none'/>
   <path d='M50 40 L57 39' stroke='hsl(38 50% 28%)' stroke-width='1.5' stroke-linecap='round'/>
   <path d='M63 39 L70 40' stroke='hsl(38 50% 28%)' stroke-width='1.5' stroke-linecap='round'/>
-  <path d='M57 50 Q60 52 63 50' stroke='hsl(28 36% 42%)' stroke-width='1.1' fill='none'/>` : `<line x1='49' y1='46' x2='58' y2='46' stroke='rgba(0,0,0,.65)' stroke-width='2' stroke-linecap='round'/>
+  <path d='M59 45 L61 45 L60 48 Z' fill='hsl(26 34% 44%)' opacity='.78'/>
+  <path d='M55 52 Q60 55 65 52' stroke='hsl(20 42% 34%)' stroke-width='1.2' fill='none'/>
+  <path d='M57 50 Q60 52 63 50' stroke='hsl(28 36% 42%)' stroke-width='1.1' fill='none'/>
+  <path d='M52 47 L49 49' stroke='rgba(90,50,26,.55)' stroke-width='.9' stroke-linecap='round'/>
+  <path d='M68 47 L71 49' stroke='rgba(90,50,26,.55)' stroke-width='.9' stroke-linecap='round'/>` : `<line x1='49' y1='46' x2='58' y2='46' stroke='rgba(0,0,0,.65)' stroke-width='2' stroke-linecap='round'/>
   <line x1='62' y1='46' x2='71' y2='46' stroke='rgba(0,0,0,.65)' stroke-width='2' stroke-linecap='round'/>`}
   <rect x='56' y='62' width='8' height='5' rx='3' fill='url(#kSkin)' stroke='${S}' stroke-width='1.8'/>
   ${hasNecklace ? `<path d='M52 65 Q60 71 68 65' stroke='hsl(${trimHue} 64% 54%)' stroke-width='1.6' fill='none'/>
