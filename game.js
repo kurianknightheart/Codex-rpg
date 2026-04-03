@@ -1,0 +1,1699 @@
+const MAP_SIZE = 2048;
+const VIEW_RADIUS = 11;
+const SAVE_VERSION = 2;
+const AGGRO_RADIUS = 3;
+const CONTENT = {
+  zones: [
+    { id: 'ashen-approach', name: 'Ashen Approach', minTier: 1, maxTier: 1, minDist: 0, maxDist: 120 },
+    { id: 'barrow-lowlands', name: 'Barrow Lowlands', minTier: 2, maxTier: 2, minDist: 120, maxDist: 220 },
+    { id: 'frost-wards', name: 'Frost Wards', minTier: 3, maxTier: 3, minDist: 220, maxDist: 330 },
+    { id: 'crownfall-depths', name: 'Crownfall Depths', minTier: 4, maxTier: 4, minDist: 330, maxDist: 9999 },
+  ],
+  affixes: {
+    prefix: ['Stalwart', 'Runed', 'Dire', 'Stormforged', 'Sanctified'],
+    suffix: ['of Embers', 'of Oaths', 'of Cinders', 'of Ruin', 'of Dawn'],
+  },
+  gems: ['Ruby', 'Sapphire', 'Topaz', 'Emerald'],
+};
+const SLOT_ORDER = ['weapon', 'helmet', 'chestArmor', 'cape', 'offhand', 'gloves', 'leggings', 'boots', 'necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'];
+const DEFENSE_SLOTS = ['helmet', 'chestArmor', 'armor', 'cape', 'offhand', 'belt', 'leggings', 'boots', 'gloves'];
+const SLOT_LABELS = {
+  weapon: 'Weapon',
+  helmet: 'Helmet',
+  chestArmor: 'Chest Armor',
+  armor: 'Armor',
+  cape: 'Cape',
+  offhand: 'Offhand',
+  belt: 'Belt',
+  leggings: 'Leggings',
+  boots: 'Boots',
+  gloves: 'Gloves',
+  necklace: 'Necklace',
+  ring1: 'Ring 1',
+  ring2: 'Ring 2',
+  trinket1: 'Trinket 1',
+  trinket2: 'Trinket 2',
+};
+const WEAPON_TYPES = ['sword', 'spear', 'falchion', 'mace', 'warpick'];
+const RARITIES = ['common', 'uncommon', 'rare', 'epic', 'legendary', 'mythic'];
+const LARGE_WEAPONS = ['Greatsword', 'Greataxe', 'Maul'];
+const SKILLS = {
+  heroicSlash: { label: 'Heroic Slash', unlockLevel: 1, mana: 8, cooldown: 1, desc: 'Reliable strike with bonus poise damage.' },
+  whirlwind: { label: 'Whirlwind', unlockLevel: 3, mana: 16, cooldown: 3, desc: 'High pressure attack with higher crit scaling.' },
+  shieldWall: { label: 'Shield Wall', unlockLevel: 4, mana: 12, cooldown: 4, desc: 'Greatly reduces the next incoming hit.' },
+  execute: { label: 'Execute', unlockLevel: 6, mana: 18, cooldown: 3, desc: 'Massive damage if the enemy is wounded.' },
+};
+const WEAPON_PASSIVES = {
+  sword: ['Balanced Edge (+2% crit)', 'Duelist Rhythm (+4% damage)', 'Parry Expert (+6% damage)'],
+  spear: ['Long Reach (+1 reach)', 'Impaling Thrust (+5% crit)', 'Linebreaker (+8% damage)'],
+  falchion: ['Crescent Cuts (+3% damage)', 'Bleeding Arc (+5% damage)', 'Whirl Master (+7% crit)'],
+  mace: ['Crushing Blows (+3 stun)', 'Bonebreaker (+5% damage)', 'Concussive Force (+8% damage)'],
+  warpick: ['Armor Split (+4% damage)', 'Sunder (+6% damage)', 'Rend Plate (+10% damage)'],
+};
+
+const state = {
+  mode: 'explore',
+  day: 1,
+  stepMs: 75,
+  lastStep: 0,
+  player: {
+    pos: { x: 512, y: 512 },
+    hp: 120,
+    stamina: 100,
+    focus: 70,
+    fatigue: 0,
+    bodyTemp: 36.8,
+    level: 1,
+    xp: 0,
+    xpToNext: 100,
+    unspentAttr: 0,
+    mana: 40,
+    skillCooldowns: { powerStrike: 0, heroicSlash: 0, whirlwind: 0, shieldWall: 0, execute: 0 },
+    combatEffects: { shieldWall: 0, evasive: 0 },
+    materials: { arcaneDust: 0, ironShard: 0 },
+    stash: [],
+    weaponProficiency: {},
+    weaponProficiency: {},
+    stats: { strength: 7, dexterity: 7, intelligence: 6, endurance: 8, willpower: 6 },
+    equipment: {},
+    inventory: [],
+  },
+  destination: null,
+  itemPool: [],
+  bestiary: [],
+  monsters: [],
+  encounter: null,
+  encounterGroup: [],
+  quests: [{ id: 'hunt-elite', title: 'Cull Elite Threats', objective: 'Defeat 2 elite monsters', progress: 0, goal: 2, done: false }],
+  dungeon: { active: false, tier: 1, room: 0, objectiveBossDefeated: false },
+  lastRespawnTick: 0,
+  inventoryFilter: 'all',
+  selectedItemId: null,
+};
+
+const el = {
+  world: document.getElementById('world'),
+  player: document.getElementById('player'),
+  coreStats: document.getElementById('coreStats'),
+  resourceBars: document.getElementById('resourceBars'),
+  encounter: document.getElementById('encounterPanel'),
+  questTracker: document.getElementById('questTracker'),
+  actions: document.getElementById('actions'),
+  equipment: document.getElementById('equipmentSlots'),
+  inventory: document.getElementById('inventory'),
+  inventoryFilter: document.getElementById('inventoryFilter'),
+  log: document.getElementById('log'),
+  characterPreview: document.getElementById('characterPreview'),
+  equipOverlay: document.getElementById('equipOverlay'),
+  characterDetails: document.getElementById('characterDetails'),
+  characterStatsPanel: document.getElementById('characterStatsPanel'),
+  itemDetails: document.getElementById('itemDetails'),
+  weaponProficiencyPanel: document.getElementById('weaponProficiencyPanel'),
+  newGameBtn: document.getElementById('newGameBtn'),
+  saveBtn: document.getElementById('saveBtn'),
+  loadBtn: document.getElementById('loadBtn'),
+  combatStage: document.getElementById('combatStage'),
+  combatPlayer: document.getElementById('combatPlayer'),
+  combatMonster: document.getElementById('combatMonster'),
+  combatPlayerNums: document.getElementById('combatPlayerNums'),
+  combatMonsterNums: document.getElementById('combatMonsterNums'),
+  lootDrop: document.getElementById('lootDrop'),
+  levelUpPanel: document.getElementById('levelUpPanel'),
+  levelUpText: document.getElementById('levelUpText'),
+  levelUpChoices: document.getElementById('levelUpChoices'),
+};
+
+function addLog(t) { const p = document.createElement('p'); p.textContent = `[Day ${Math.floor(state.day)}] ${t}`; el.log.prepend(p); }
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const rand = (a, b) => Math.floor(Math.random() * (b - a + 1)) + a;
+const SAVE_KEY = 'ashen_marches_save_v1';
+
+function getKnightAppearance() {
+  const eq = state.player.equipment || {};
+  return {
+    weaponHue: eq.weapon?.appearance?.hue ?? 24,
+    armorHue: eq.chestArmor?.appearance?.hue ?? eq.armor?.appearance?.hue ?? null,
+    trimHue: eq.necklace?.appearance?.hue ?? eq.ring1?.appearance?.hue ?? 45,
+    clothHue: eq.chestArmor?.appearance?.hue ?? eq.cape?.appearance?.hue ?? eq.gloves?.appearance?.hue ?? 280,
+    leatherHue: eq.boots?.appearance?.hue ?? eq.leggings?.appearance?.hue ?? 30,
+    helmHue: eq.helmet?.appearance?.hue ?? 210,
+    eyeHue: 28,
+    hasWeapon: Boolean(eq.weapon),
+    hasHelmet: Boolean(eq.helmet),
+    hasCape: Boolean(eq.cape),
+    hasOffhand: Boolean(eq.offhand),
+    hasChest: Boolean(eq.chestArmor || eq.armor),
+    hasGloves: Boolean(eq.gloves),
+    hasBoots: Boolean(eq.boots),
+    hasLeggings: Boolean(eq.leggings),
+    hasNecklace: Boolean(eq.necklace),
+    hasRing1: Boolean(eq.ring1),
+    hasRing2: Boolean(eq.ring2),
+  };
+}
+
+function knightSvg({
+  weaponHue = 24,
+  armorHue = 220,
+  trimHue = 45,
+  clothHue = 280,
+  leatherHue = 30,
+  helmHue = 210,
+  eyeHue = 28,
+  hasWeapon = false,
+  hasHelmet = false,
+  hasCape = false,
+  hasOffhand = false,
+  hasChest = false,
+  hasGloves = false,
+  hasBoots = false,
+  hasLeggings = false,
+  hasNecklace = false,
+  hasRing1 = false,
+  hasRing2 = false,
+} = {}) {
+  /* Battle Brothers-style chunky warrior — bold outlines, earthy palette, 2.5D ground shadow */
+  const S = '#0d0a06';
+  const bodyFill = hasChest ? `hsl(${armorHue} 26% 44%)` : `hsl(${clothHue} 28% 36%)`;
+  return `<svg viewBox='0 0 120 160' xmlns='http://www.w3.org/2000/svg'>
+  <defs>
+    <linearGradient id='kSkin' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%'   stop-color='hsl(28 50% 72%)'/>
+      <stop offset='100%' stop-color='hsl(28 42% 58%)'/>
+    </linearGradient>
+    <linearGradient id='kArmor' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%'   stop-color='hsl(${armorHue} 26% 58%)'/>
+      <stop offset='100%' stop-color='hsl(${armorHue} 18% 28%)'/>
+    </linearGradient>
+    <radialGradient id='kBodyLight' cx='38%' cy='28%' r='58%'>
+      <stop offset='0%'   stop-color='rgba(255,230,180,.18)'/>
+      <stop offset='100%' stop-color='rgba(0,0,0,0)'/>
+    </radialGradient>
+  </defs>
+  <ellipse cx='60' cy='154' rx='23' ry='5' fill='rgba(0,0,0,0.42)'/>
+  ${hasCape ? `<path d='M40 65 Q28 108 30 150 L54 150 L52 65 Z' fill='hsl(${clothHue} 30% 20%)' stroke='${S}' stroke-width='1.8' opacity='.9'/>
+  <path d='M80 65 Q92 108 90 150 L66 150 L68 65 Z' fill='hsl(${clothHue} 30% 20%)' stroke='${S}' stroke-width='1.8' opacity='.9'/>` : ''}
+  <g class='limb leg-left'>
+    <rect x='45' y='108' width='14' height='44' rx='7' fill='${hasLeggings ? `hsl(${clothHue} 24% 34%)` : `url(#kSkin)`}' stroke='${S}' stroke-width='2.2'/>
+    ${hasBoots ? `<rect x='44' y='134' width='16' height='18' rx='6' fill='hsl(${leatherHue} 24% 22%)' stroke='${S}' stroke-width='2'/>` : ''}
+  </g>
+  <g class='limb leg-right'>
+    <rect x='61' y='108' width='14' height='44' rx='7' fill='${hasLeggings ? `hsl(${clothHue} 24% 34%)` : `url(#kSkin)`}' stroke='${S}' stroke-width='2.2'/>
+    ${hasBoots ? `<rect x='60' y='134' width='16' height='18' rx='6' fill='hsl(${leatherHue} 20% 20%)' stroke='${S}' stroke-width='2'/>` : ''}
+  </g>
+  <rect x='37' y='64' width='46' height='46' rx='9' fill='${bodyFill}' stroke='${S}' stroke-width='2.6'/>
+  <rect x='37' y='64' width='46' height='46' rx='9' fill='url(#kBodyLight)' stroke='none'/>
+  ${hasChest ? `<path d='M44 68 L76 68 L78 92 L42 92 Z' fill='hsl(${armorHue} 22% 50%)' stroke='${S}' stroke-width='1.6'/>
+  <path d='M52 68 L68 68 L70 82 L50 82 Z' fill='hsl(${armorHue} 28% 58%)' opacity='.7'/>
+  <line x1='60' y1='68' x2='60' y2='92' stroke='hsl(${trimHue} 56% 48%)' stroke-width='1.3'/>
+  <line x1='44' y1='78' x2='76' y2='78' stroke='hsl(${trimHue} 50% 44%)' stroke-width='1'/>
+  <line x1='44' y1='86' x2='76' y2='86' stroke='hsl(${trimHue} 46% 40%)' stroke-width='.9'/>` : ''}
+  <ellipse cx='35' cy='70' rx='11' ry='7' fill='${bodyFill}' stroke='${S}' stroke-width='2.2'/>
+  <ellipse cx='85' cy='70' rx='11' ry='7' fill='${bodyFill}' stroke='${S}' stroke-width='2.2'/>
+  ${hasChest ? `<ellipse cx='35' cy='70' rx='9' ry='5.5' fill='url(#kArmor)' stroke='none'/>
+  <ellipse cx='85' cy='70' rx='9' ry='5.5' fill='url(#kArmor)' stroke='none'/>` : ''}
+  <g class='limb arm-left'>
+    <rect x='27' y='68' width='15' height='40' rx='7' fill='${hasGloves ? `url(#kArmor)` : `url(#kSkin)`}' stroke='${S}' stroke-width='2.2'/>
+    ${hasGloves ? `<rect x='26' y='98' width='17' height='14' rx='6' fill='hsl(${armorHue} 20% 26%)' stroke='${S}' stroke-width='1.8'/>` : ''}
+    ${hasRing1 ? `<circle cx='34' cy='110' r='2.2' fill='hsl(${trimHue} 70% 54%)' stroke='${S}' stroke-width='1'/>` : ''}
+  </g>
+  ${hasOffhand ? `<ellipse cx='21' cy='90' rx='12' ry='16' fill='hsl(${armorHue} 20% 48%)' stroke='${S}' stroke-width='2.2'/>
+  <path d='M14 90 Q21 75 28 90 Q21 105 14 90 Z' fill='hsl(${armorHue} 16% 58%)' stroke='${S}' stroke-width='1.5'/>
+  <line x1='21' y1='79' x2='21' y2='101' stroke='hsl(${trimHue} 54% 48%)' stroke-width='1.4'/>
+  <line x1='16' y1='90' x2='26' y2='90' stroke='hsl(${trimHue} 54% 48%)' stroke-width='1.4'/>` : ''}
+  <g class='limb arm-right'>
+    <rect x='78' y='68' width='15' height='40' rx='7' fill='${hasGloves ? `url(#kArmor)` : `url(#kSkin)`}' stroke='${S}' stroke-width='2.2'/>
+    ${hasGloves ? `<rect x='77' y='98' width='17' height='14' rx='6' fill='hsl(${armorHue} 20% 26%)' stroke='${S}' stroke-width='1.8'/>` : ''}
+    ${hasRing2 ? `<circle cx='86' cy='110' r='2.2' fill='hsl(${trimHue} 70% 54%)' stroke='${S}' stroke-width='1'/>` : ''}
+  </g>
+  ${hasWeapon ? `<g transform='rotate(-9,93,90)'><rect x='89' y='52' width='8' height='56' rx='3' fill='hsl(${weaponHue} 54% 64%)' stroke='${S}' stroke-width='2'/>
+  <rect x='80' y='76' width='26' height='5' rx='2' fill='hsl(${weaponHue} 38% 28%)' stroke='${S}' stroke-width='1.5'/>
+  <path d='M89 52 L93 42 L97 52 Z' fill='hsl(${weaponHue} 66% 76%)' stroke='${S}' stroke-width='1.5'/>
+  <circle cx='93' cy='108' r='4' fill='hsl(${weaponHue} 44% 36%)' stroke='${S}' stroke-width='1.5'/>
+  <line x1='89' y1='62' x2='97' y2='62' stroke='hsl(${weaponHue} 28% 48%)' stroke-width='1'/></g>` : ''}
+  ${!hasHelmet ? `<path d='M43 44 Q44 20 60 18 Q76 20 77 44 L75 40 Q60 24 45 40 Z' fill='hsl(38 60% 40%)' stroke='${S}' stroke-width='1.8'/>` : ''}
+  <circle cx='60' cy='44' r='20' fill='url(#kSkin)' stroke='${S}' stroke-width='2.6'/>
+  ${hasHelmet ? `<path d='M40 44 Q42 18 60 16 Q78 18 80 44 L77 54 L43 54 Z' fill='hsl(${helmHue} 24% 44%)' stroke='${S}' stroke-width='2.2'/>
+  <path d='M48 44 L72 44 L69 54 L51 54 Z' fill='hsl(${helmHue} 18% 20%)' stroke='${S}' stroke-width='1.5'/>
+  <path d='M57 17 L60 12 L63 17' fill='hsl(${trimHue} 66% 52%)' stroke='${S}' stroke-width='1.2'/>
+  <line x1='42' y1='36' x2='48' y2='34' stroke='hsl(${helmHue} 20% 60%)' stroke-width='1.1'/>
+  <line x1='78' y1='36' x2='72' y2='34' stroke='hsl(${helmHue} 20% 60%)' stroke-width='1.1'/>` : ''}
+  ${!hasHelmet ? `<ellipse cx='53' cy='43' rx='3.8' ry='3' fill='hsl(${eyeHue} 42% 38%)' stroke='${S}' stroke-width='1.2'/>
+  <ellipse cx='67' cy='43' rx='3.8' ry='3' fill='hsl(${eyeHue} 42% 38%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='53' cy='43' r='1.5' fill='#14100a'/>
+  <circle cx='67' cy='43' r='1.5' fill='#14100a'/>
+  <circle cx='52' cy='42' r='.6' fill='rgba(255,255,255,.55)'/>
+  <circle cx='66' cy='42' r='.6' fill='rgba(255,255,255,.55)'/>
+  <path d='M50 40 L57 39' stroke='hsl(38 50% 28%)' stroke-width='1.5' stroke-linecap='round'/>
+  <path d='M63 39 L70 40' stroke='hsl(38 50% 28%)' stroke-width='1.5' stroke-linecap='round'/>
+  <path d='M57 50 Q60 52 63 50' stroke='hsl(28 36% 42%)' stroke-width='1.1' fill='none'/>` : `<line x1='49' y1='46' x2='58' y2='46' stroke='rgba(0,0,0,.65)' stroke-width='2' stroke-linecap='round'/>
+  <line x1='62' y1='46' x2='71' y2='46' stroke='rgba(0,0,0,.65)' stroke-width='2' stroke-linecap='round'/>`}
+  <rect x='56' y='62' width='8' height='5' rx='3' fill='url(#kSkin)' stroke='${S}' stroke-width='1.8'/>
+  ${hasNecklace ? `<path d='M52 65 Q60 71 68 65' stroke='hsl(${trimHue} 64% 54%)' stroke-width='1.6' fill='none'/>
+  <circle cx='60' cy='70' r='2.4' fill='hsl(${trimHue} 64% 48%)' stroke='${S}' stroke-width='1'/>` : ''}
+  <path d='M44 63 Q60 57 76 63' stroke='hsl(${trimHue} 42% 44%)' stroke-width='1.4' fill='none'/>
+</svg>`;
+}
+
+
+function applyKnight() {
+  const svg = knightSvg(getKnightAppearance());
+  el.player.innerHTML = svg;
+  const existingSvg = el.characterPreview.querySelector('svg');
+  if (existingSvg) existingSvg.remove();
+  el.characterPreview.insertAdjacentHTML('afterbegin', svg);
+}
+
+function iso(x, y) {
+  const s = 38;
+  return { x: (x - y) * (s / 2) + el.world.clientWidth / 2 - 38, y: (x + y) * (s / 4) + 24 };
+}
+
+function screenToWorldTile(clientX, clientY) {
+  const rect = el.world.getBoundingClientRect();
+  const lx = clientX - rect.left;
+  const ly = clientY - rect.top;
+  const s = 38;
+  const centerX = el.world.clientWidth / 2;
+  const centerY = el.world.clientHeight / 2;
+  const dx = lx - centerX;
+  const dy = ly - centerY;
+  const localX = (dx / (s / 2) + dy / (s / 4)) / 2;
+  const localY = (dy / (s / 4) - dx / (s / 2)) / 2;
+  const wx = Math.round(state.player.pos.x + localX);
+  const wy = Math.round(state.player.pos.y + localY);
+  return {
+    x: clamp(wx, 0, MAP_SIZE - 1),
+    y: clamp(wy, 0, MAP_SIZE - 1),
+  };
+}
+
+function biomeAt(x, y) {
+  const n = Math.sin(x * 0.045) + Math.cos(y * 0.038) + Math.sin((x + y) * 0.02) + Math.cos((x - y) * 0.015);
+  if (n > 1.7) return 'frost';
+  if (n > 1.25) return 'forest';
+  if (n > 0.8) return 'grass';
+  if (n > 0.35) return 'hills';
+  if (n > 0.1) return 'road';
+  if (n > -0.25) return 'moor';
+  if (n > -0.7) return 'swamp';
+  if (n > -1.1) return 'ruin';
+  if (n > -1.45) return 'ash';
+  return 'water';
+}
+
+function biomeTravelProfile(biome) {
+  const table = {
+    road: { stamina: 0.7, fatigue: 0.35, temp: 0.0, danger: 0.85 },
+    forest: { stamina: 1.15, fatigue: 0.7, temp: -0.02, danger: 1.1 },
+    hills: { stamina: 1.2, fatigue: 0.78, temp: -0.01, danger: 1.1 },
+    moor: { stamina: 1.12, fatigue: 0.72, temp: -0.04, danger: 1.15 },
+    grass: { stamina: 1.0, fatigue: 0.55, temp: 0.0, danger: 1.0 },
+    swamp: { stamina: 1.45, fatigue: 0.9, temp: -0.08, danger: 1.35 },
+    frost: { stamina: 1.25, fatigue: 0.75, temp: -0.14, danger: 1.25 },
+    desert: { stamina: 1.3, fatigue: 0.8, temp: 0.12, danger: 1.2 },
+    ruin: { stamina: 1.15, fatigue: 0.7, temp: -0.03, danger: 1.4 },
+    ash: { stamina: 1.35, fatigue: 0.82, temp: 0.05, danger: 1.5 },
+    water: { stamina: 1.7, fatigue: 1.05, temp: -0.11, danger: 1.6 },
+  };
+  return table[biome] || table.grass;
+}
+
+function zoneAt(x, y) {
+  const dx = x - MAP_SIZE / 2;
+  const dy = y - MAP_SIZE / 2;
+  const dist = Math.hypot(dx, dy);
+  return CONTENT.zones.find((z) => dist >= z.minDist && dist < z.maxDist) || CONTENT.zones[0];
+}
+
+function decoSeed(x, y) {
+  const v = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+  return v - Math.floor(v);
+}
+
+function renderMapChunk() {
+  el.world.querySelectorAll('.patch,.monster,.deco,.monster-aggro-ring').forEach((n) => n.remove());
+  const { x: px, y: py } = state.player.pos;
+  const fragment = document.createDocumentFragment();
+  for (let y = py - VIEW_RADIUS; y <= py + VIEW_RADIUS; y += 1) {
+    for (let x = px - VIEW_RADIUS; x <= px + VIEW_RADIUS; x += 1) {
+      if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE) continue;
+      const biome = biomeAt(x, y);
+      const p = iso(x - px + VIEW_RADIUS, y - py + VIEW_RADIUS);
+      const patch = document.createElement('div');
+      patch.className = `patch ${biome}`;
+      patch.style.left = `${p.x + 38 + (decoSeed(x, y) - 0.5) * 16}px`;
+      patch.style.top = `${p.y + 20 + (decoSeed(y, x) - 0.5) * 12}px`;
+      patch.style.width = `${52 + Math.floor(decoSeed(x + 3, y + 5) * 38)}px`;
+      patch.style.height = `${28 + Math.floor(decoSeed(x + 8, y + 2) * 22)}px`;
+      fragment.appendChild(patch);
+      if (decoSeed(x, y) < 0.78) {
+        const deco = document.createElement('div');
+        deco.className = `deco ${featureForTile(x, y, biome)}`;
+        deco.style.left = `${p.x + 28 + (decoSeed(x + 19, y + 7) - 0.5) * 24}px`;
+        deco.style.top = `${p.y + 6 + (decoSeed(x + 5, y + 23) - 0.5) * 14}px`;
+        fragment.appendChild(deco);
+        if (decoSeed(x + 13, y + 29) > 0.72) {
+          const deco2 = document.createElement('div');
+          deco2.className = `deco ${decoForBiome(biome, decoSeed(x + 41, y + 27))}`;
+          deco2.style.left = `${p.x + 26 + (decoSeed(x + 31, y + 3) - 0.5) * 16}px`;
+          deco2.style.top = `${p.y + 10 + (decoSeed(x + 9, y + 17) - 0.5) * 10}px`;
+          fragment.appendChild(deco2);
+        }
+      }
+    }
+  }
+  fragment.appendChild(drawMonsters());
+  el.world.appendChild(fragment);
+  el.world.appendChild(el.player);
+  renderPlayer();
+}
+
+function decoForBiome(biome, seed = 0.5) {
+  if (biome === 'grass') return seed > 0.5 ? 'shrub' : 'flowers';
+  if (biome === 'forest') return seed > 0.5 ? 'pine' : 'fern';
+  if (biome === 'hills') return seed > 0.55 ? 'stone' : 'bush';
+  if (biome === 'moor') return seed > 0.45 ? 'heather' : 'vine';
+  if (biome === 'swamp') return seed > 0.5 ? 'reed' : 'fern';
+  if (biome === 'desert') return seed > 0.55 ? 'stone' : 'stump';
+  if (biome === 'frost') return seed > 0.4 ? 'frostshrub' : 'shrub';
+  if (biome === 'ruin') return seed > 0.4 ? 'ruin' : 'vine';
+  if (biome === 'ash') return seed > 0.5 ? 'ash' : 'stump';
+  return 'stone';
+}
+
+function featureForTile(x, y, biome) {
+  const seed = decoSeed(x * 3 + 7, y * 5 + 11);
+  if (seed > 0.94 && biome !== 'water') return 'lake';
+  if (seed > 0.8) return 'mountain';
+  return decoForBiome(biome, seed);
+}
+
+function renderPlayer() {
+  if (!el.player.innerHTML.trim()) applyKnight();
+  el.player.style.left = `${Math.floor(el.world.clientWidth / 2)}px`;
+  el.player.style.top = `${Math.floor(el.world.clientHeight / 2)}px`;
+}
+
+function detailedWeaponSvg(kind, h, studs) {
+  if (kind === 'spear') {
+    return `<svg viewBox='0 0 40 40'>
+      <path d='M20 2 L24 9 L20 15 L16 9 Z' fill='hsl(${h} 82% 84%)'/><path d='M18 13 L22 13 L22 36 L18 36 Z' fill='hsl(${h} 34% 36%)'/><rect x='18' y='18' width='4' height='2' fill='hsl(${h} 22% 48%)'/><rect x='18' y='24' width='4' height='2' fill='hsl(${h} 22% 48%)'/><rect x='18' y='30' width='4' height='2' fill='hsl(${h} 22% 48%)'/><path d='M16 10 L24 10' stroke='hsl(${h} 20% 32%)' stroke-width='1'/><path d='M17 16 L23 16' stroke='hsl(${h} 20% 32%)' stroke-width='1'/><circle cx='20' cy='20' r='0.8'/><circle cx='20' cy='26' r='0.8'/><circle cx='20' cy='32' r='0.8'/><path d='M19 3 L20 1 L21 3' stroke='hsl(${h} 20% 28%)' stroke-width='0.8'/><path d='M16 8 L20 12 L24 8' stroke='hsl(${h} 18% 22%)' stroke-width='0.8' fill='none'/><path d='M18 36 L22 36 L21 38 L19 38 Z' fill='hsl(${h} 30% 20%)'/><rect x='17' y='34' width='6' height='2' fill='hsl(${h} 18% 28%)'/><rect x='17' y='22' width='6' height='1' fill='hsl(${h} 70% 72%)' opacity='.55'/><rect x='17' y='28' width='6' height='1' fill='hsl(${h} 70% 72%)' opacity='.55'/><circle cx='18' cy='18' r='0.6'/><circle cx='22' cy='18' r='0.6'/><circle cx='18' cy='30' r='0.6'/><circle cx='22' cy='30' r='0.6'/>${studs}
+    </svg>`;
+  }
+  if (kind === 'falchion') {
+    return `<svg viewBox='0 0 40 40'>
+      <path d='M13 6 Q30 8 25 31 Q17 28 11 10 Z' fill='hsl(${h} 62% 74%)'/><path d='M14 9 Q24 10 21 26' stroke='hsl(${h} 25% 42%)' stroke-width='1.1' fill='none'/><path d='M15 24 L26 24' stroke='hsl(${h} 74% 86%)' stroke-width='1'/><rect x='14' y='24' width='12' height='3' rx='2' fill='hsl(${h} 30% 28%)'/><rect x='18' y='27' width='4' height='8' rx='2' fill='hsl(${h} 26% 24%)'/><circle cx='20' cy='35' r='1.4' fill='hsl(${h} 76% 72%)'/><path d='M13 20 L11 19 M24 15 L26 14 M17 12 L19 12' stroke='hsl(${h} 18% 22%)' stroke-width='0.8'/><circle cx='16' cy='25' r='0.7'/><circle cx='20' cy='25' r='0.7'/><circle cx='24' cy='25' r='0.7'/><path d='M12 8 L15 6 L16 8' fill='hsl(${h} 70% 82%)'/><path d='M12 11 L15 9 L16 11' fill='hsl(${h} 70% 82%)'/><path d='M12 14 L15 12 L16 14' fill='hsl(${h} 70% 82%)'/><path d='M23 28 L24 31 L22 33 L20 31 L21 28' fill='hsl(${h} 45% 55%)'/><path d='M18 28 L17 31 L19 33 L21 31 L20 28' fill='hsl(${h} 45% 55%)'/><rect x='17' y='22' width='6' height='1' fill='hsl(${h} 70% 85%)' opacity='.6'/><rect x='17' y='30' width='6' height='1' fill='hsl(${h} 12% 14%)' opacity='.5'/><circle cx='13' cy='18' r='0.6'/><circle cx='25' cy='18' r='0.6'/><circle cx='12' cy='22' r='0.6'/>${studs}
+    </svg>`;
+  }
+  if (kind === 'mace') {
+    return `<svg viewBox='0 0 40 40'>
+      <circle cx='20' cy='8' r='6' fill='hsl(${h} 30% 44%)'/><rect x='18' y='12' width='4' height='22' rx='2' fill='hsl(${h} 35% 34%)'/><path d='M20 2 L21 5 L20 8 L19 5 Z' fill='hsl(${h} 70% 72%)'/><path d='M14 8 L17 9 L20 8 L17 7 Z' fill='hsl(${h} 26% 52%)'/><path d='M26 8 L23 9 L20 8 L23 7 Z' fill='hsl(${h} 26% 52%)'/><path d='M20 14 L22 16 L20 18 L18 16 Z' fill='hsl(${h} 26% 48%)'/><rect x='17' y='16' width='6' height='2' fill='hsl(${h} 22% 40%)'/><rect x='17' y='20' width='6' height='2' fill='hsl(${h} 22% 40%)'/><rect x='17' y='24' width='6' height='2' fill='hsl(${h} 22% 40%)'/><rect x='17' y='28' width='6' height='2' fill='hsl(${h} 22% 40%)'/><circle cx='20' cy='34' r='1.3' fill='hsl(${h} 72% 78%)'/><circle cx='17' cy='4' r='0.9'/><circle cx='23' cy='4' r='0.9'/><circle cx='15' cy='8' r='0.8'/><circle cx='25' cy='8' r='0.8'/><circle cx='17' cy='12' r='0.8'/><circle cx='23' cy='12' r='0.8'/><path d='M18 33 L22 33' stroke='hsl(${h} 18% 20%)' stroke-width='1'/><path d='M19 36 L21 36' stroke='hsl(${h} 18% 20%)' stroke-width='1'/><rect x='18' y='30' width='4' height='2' fill='hsl(${h} 16% 28%)'/>${studs}
+    </svg>`;
+  }
+  if (kind === 'warpick') {
+    return `<svg viewBox='0 0 40 40'>
+      <path d='M13 10 L27 10 L30 14 L10 14 Z' fill='hsl(${h} 55% 74%)'/><rect x='18' y='12' width='4' height='22' rx='2' fill='hsl(${h} 35% 34%)'/><path d='M27 10 L34 4 L31 14 Z' fill='hsl(${h} 65% 72%)'/><path d='M13 10 L7 6 L10 14 Z' fill='hsl(${h} 45% 62%)'/><rect x='17' y='16' width='6' height='2' fill='hsl(${h} 22% 44%)'/><rect x='17' y='20' width='6' height='2' fill='hsl(${h} 22% 44%)'/><rect x='17' y='24' width='6' height='2' fill='hsl(${h} 22% 44%)'/><rect x='17' y='28' width='6' height='2' fill='hsl(${h} 22% 44%)'/><path d='M30 8 L33 5' stroke='hsl(${h} 18% 30%)' stroke-width='1'/><path d='M28 11 L32 9' stroke='hsl(${h} 18% 30%)' stroke-width='1'/><path d='M11 10 L8 8' stroke='hsl(${h} 18% 30%)' stroke-width='1'/><path d='M12 13 L8 12' stroke='hsl(${h} 18% 30%)' stroke-width='1'/><circle cx='20' cy='34' r='1.4' fill='hsl(${h} 74% 78%)'/><circle cx='20' cy='17' r='0.8'/><circle cx='20' cy='21' r='0.8'/><circle cx='20' cy='25' r='0.8'/><circle cx='20' cy='29' r='0.8'/><rect x='18' y='32' width='4' height='2' fill='hsl(${h} 18% 25%)'/><rect x='18' y='35' width='4' height='2' fill='hsl(${h} 18% 20%)'/><circle cx='14' cy='12' r='0.7'/><circle cx='26' cy='12' r='0.7'/>${studs}
+    </svg>`;
+  }
+  return `<svg viewBox='0 0 40 40'>
+    <rect x='18' y='3' width='4' height='25' rx='2' fill='hsl(${h} 62% 67%)'/><rect x='11' y='24' width='18' height='4' rx='2' fill='hsl(${h} 40% 30%)'/><rect x='18' y='27' width='4' height='8' rx='2' fill='hsl(${h} 35% 24%)'/><circle cx='20' cy='5' r='1.1' fill='hsl(${h} 74% 82%)'/><circle cx='20' cy='9' r='1.1' fill='hsl(${h} 74% 82%)'/><circle cx='20' cy='13' r='1.1' fill='hsl(${h} 74% 82%)'/><circle cx='20' cy='17' r='1.1' fill='hsl(${h} 74% 82%)'/><circle cx='20' cy='21' r='1.1' fill='hsl(${h} 74% 82%)'/><path d='M12 24 L16 20 L20 24' fill='hsl(${h} 44% 44%)'/><path d='M28 24 L24 20 L20 24' fill='hsl(${h} 44% 44%)'/><rect x='13' y='25' width='14' height='2' fill='hsl(${h} 20% 20%)'/><rect x='18' y='30' width='4' height='2' fill='hsl(${h} 18% 28%)'/><rect x='18' y='33' width='4' height='2' fill='hsl(${h} 18% 22%)'/><circle cx='15' cy='26' r='0.7'/><circle cx='20' cy='26' r='0.7'/><circle cx='25' cy='26' r='0.7'/><circle cx='20' cy='37' r='1.2' fill='hsl(${h} 74% 78%)'/><path d='M18 2 L20 1 L22 2' stroke='hsl(${h} 18% 26%)' stroke-width='0.8'/><path d='M19 28 L21 28' stroke='hsl(${h} 12% 18%)' stroke-width='1'/><path d='M19 35 L21 35' stroke='hsl(${h} 12% 18%)' stroke-width='1'/>${studs}
+  </svg>`;
+}
+
+function detailedArmorSvg(slot, h, studs, v1, v2, idNum) {
+  if (slot === 'helmet') {
+    return `<svg viewBox='0 0 40 40'><path d='M8 18 Q20 3 32 18 L30 31 L10 31 Z' fill='hsl(${h} 32% 46%)'/><path d='M13 18 L27 18 L25 26 L15 26 Z' fill='hsl(${h} 24% 22%)'/><path d='M20 6 L22 10 L20 14 L18 10 Z' fill='hsl(${h} 72% 72%)'/><path d='M11 22 L15 22 M25 22 L29 22' stroke='hsl(${h} 20% 60%)' stroke-width='1.1'/><path d='M12 30 L15 34 L25 34 L28 30' fill='hsl(${h} 20% 36%)'/><circle cx='16' cy='22' r='0.8'/><circle cx='24' cy='22' r='0.8'/><circle cx='20' cy='28' r='1.1'/><path d='M10 18 L8 20 M30 18 L32 20' stroke='hsl(${h} 18% 24%)' stroke-width='1'/><path d='M14 12 L26 12' stroke='hsl(${h} 68% 75%)' stroke-width='1'/>${studs}</svg>`;
+  }
+  if (slot === 'gloves') {
+    return `<svg viewBox='0 0 40 40'><rect x='8' y='16' width='10' height='16' rx='3' fill='hsl(${h} 30% 40%)'/><rect x='22' y='16' width='10' height='16' rx='3' fill='hsl(${h} 30% 40%)'/><rect x='10' y='12' width='3' height='7' rx='1' fill='hsl(${h} 32% 52%)'/><rect x='13' y='11' width='3' height='8' rx='1' fill='hsl(${h} 32% 52%)'/><rect x='24' y='12' width='3' height='7' rx='1' fill='hsl(${h} 32% 52%)'/><rect x='27' y='11' width='3' height='8' rx='1' fill='hsl(${h} 32% 52%)'/><path d='M9 26 L17 26 M23 26 L31 26' stroke='hsl(${h} 22% 22%)' stroke-width='1'/><circle cx='13' cy='29' r='0.8'/><circle cx='27' cy='29' r='0.8'/><path d='M8 20 L18 20 M22 20 L32 20' stroke='hsl(${h} 65% 72%)' stroke-width='1'/>${studs}</svg>`;
+  }
+  if (slot === 'boots') {
+    return `<svg viewBox='0 0 40 40'><path d='M8 12 L16 12 L16 25 L23 25 L23 30 L8 30 Z' fill='hsl(${h} 26% 34%)'/><path d='M24 12 L32 12 L32 25 L36 25 L36 30 L24 30 Z' fill='hsl(${h} 26% 34%)'/><rect x='10' y='14' width='4' height='10' fill='hsl(${h} 24% 44%)'/><rect x='26' y='14' width='4' height='10' fill='hsl(${h} 24% 44%)'/><path d='M8 30 L23 30 L23 33 L8 33 Z' fill='hsl(${h} 20% 18%)'/><path d='M24 30 L36 30 L36 33 L24 33 Z' fill='hsl(${h} 20% 18%)'/><circle cx='12' cy='18' r='0.7'/><circle cx='12' cy='21' r='0.7'/><circle cx='28' cy='18' r='0.7'/><circle cx='28' cy='21' r='0.7'/>${studs}</svg>`;
+  }
+  if (slot === 'leggings') {
+    return `<svg viewBox='0 0 40 40'><path d='M11 8 L29 8 L31 14 L26 33 L20 30 L14 33 L9 14 Z' fill='hsl(${h} 30% 40%)'/><path d='M20 8 L20 30' stroke='hsl(${h} 18% 24%)' stroke-width='1.2'/><path d='M13 14 L18 14 M22 14 L27 14' stroke='hsl(${h} 66% 70%)' stroke-width='1'/><path d='M13 19 L18 19 M22 19 L27 19' stroke='hsl(${h} 66% 70%)' stroke-width='1'/><path d='M14 25 L18 25 M22 25 L26 25' stroke='hsl(${h} 66% 70%)' stroke-width='1'/><circle cx='16' cy='30' r='1'/><circle cx='24' cy='30' r='1'/><path d='M14 33 L18 33 L18 35 L14 35 Z' fill='hsl(${h} 20% 22%)'/><path d='M22 33 L26 33 L26 35 L22 35 Z' fill='hsl(${h} 20% 22%)'/>${studs}</svg>`;
+  }
+  return `<svg viewBox='0 0 40 40'><path d='M8 9 L32 9 L30 34 L10 34 Z' fill='hsl(${h} 34% 45%)'/><path d='M14 9 L16 6 L24 6 L26 9' fill='hsl(${h} 50% 70%)'/><path d='M12 14 L28 14 M12 19 L28 19 M12 24 L28 24 M12 29 L28 29' stroke='hsl(${h} 22% 28%)' stroke-width='1'/><path d='M${v1} 12 L${v2} 30 L${32 - (idNum % 6)} 12' stroke='hsl(${h} 60% 74%)' stroke-width='1.2' fill='none'/><circle cx='14' cy='16' r='0.9'/><circle cx='20' cy='16' r='0.9'/><circle cx='26' cy='16' r='0.9'/><circle cx='14' cy='22' r='0.9'/><circle cx='20' cy='22' r='0.9'/><circle cx='26' cy='22' r='0.9'/>${studs}</svg>`;
+}
+
+function iconSvg(item) {
+  const h = item.appearance.hue;
+  const idNum = Number(String(item.id).replace(/\D/g, '')) || 1;
+  const v1 = 6 + (idNum % 8);
+  const v2 = 10 + (idNum % 14);
+  const rarityGlow = item.rarity === 'mythic' ? 84 : item.rarity === 'legendary' ? 75 : item.rarity === 'epic' ? 62 : item.rarity === 'rare' ? 55 : item.rarity === 'uncommon' ? 50 : 45;
+  let studs = '';
+  for (let i = 0; i < 10; i += 1) studs += `<circle cx='${8 + i * 2.4}' cy='${34 - (i % 2)}' r='0.9' fill='hsl(${h} 20% 25%)'/>`;
+  const core = `<polygon points='20,4 ${30 + (idNum % 4)},14 20,36 ${10 - (idNum % 4)},14' fill='hsl(${h} 58% ${rarityGlow}%)'/>${studs}`;
+  if (item.slot === 'weapon') {
+    const kind = item.name.includes('Spear')
+      ? 'spear'
+      : item.name.includes('Falchion')
+        ? 'falchion'
+        : item.name.includes('Mace')
+          ? 'mace'
+          : item.name.includes('War Pick')
+            ? 'warpick'
+            : 'sword';
+    return detailedWeaponSvg(kind, h, studs);
+  }
+  if (DEFENSE_SLOTS.includes(item.slot)) {
+    return detailedArmorSvg(item.slot, h, studs, v1, v2, idNum);
+  }
+  return `<svg viewBox='0 0 40 40'>${core}<circle cx='20' cy='20' r='${6 + (idNum % 4)}' fill='none' stroke='hsl(${h} 70% 76%)' stroke-width='1.6'/><circle cx='20' cy='20' r='2.5' fill='hsl(${h} 85% 85%)'/><circle cx='14' cy='14' r='1.2'/><circle cx='26' cy='14' r='1.2'/><circle cx='14' cy='26' r='1.2'/><circle cx='26' cy='26' r='1.2'/></svg>`;
+}
+
+function itemDesc(slot, s) {
+  if (slot === 'weapon') return `DMG ${s.damage} | SPD ${s.attackSpeed} | CRIT ${s.crit}% | REACH ${s.reach} | STUN ${s.stunChance}%`;
+  if (DEFENSE_SLOTS.includes(slot)) return `DEF ${s.defense} | HP +${s.hpIncrease} | EVA ${s.evasion}%`;
+  return `STR +${s.strength} | INT +${s.intelligence} | WIL +${s.willpower} | CRIT +${s.crit}%`;
+}
+
+function weaponTypeFromItem(item) {
+  const n = (item?.name || '').toLowerCase();
+  if (n.includes('spear')) return 'spear';
+  if (n.includes('falchion')) return 'falchion';
+  if (n.includes('mace')) return 'mace';
+  if (n.includes('war pick') || n.includes('warpick')) return 'warpick';
+  return 'sword';
+}
+
+function ensureWeaponProficiency() {
+  if (!state.player.weaponProficiency || typeof state.player.weaponProficiency !== 'object') state.player.weaponProficiency = {};
+  WEAPON_TYPES.forEach((t) => {
+    if (!state.player.weaponProficiency[t]) state.player.weaponProficiency[t] = { xp: 0, unlocked: [] };
+  });
+}
+
+function proficiencyLevel(type) {
+  ensureWeaponProficiency();
+  return Math.min(10, Math.floor((state.player.weaponProficiency[type]?.xp || 0) / 1000));
+}
+
+function proficiencyDamageBonus(type) {
+  return proficiencyLevel(type) * 0.015;
+}
+
+function addWeaponProficiencyXP(type, amount) {
+  ensureWeaponProficiency();
+  const prof = state.player.weaponProficiency[type];
+  const prevLevel = proficiencyLevel(type);
+  prof.xp = Math.min(10000, prof.xp + amount);
+  const newLevel = proficiencyLevel(type);
+  const unlockThresholds = [2, 5, 8];
+  unlockThresholds.forEach((lvl, idx) => {
+    if (newLevel >= lvl && !prof.unlocked.includes(WEAPON_PASSIVES[type][idx])) {
+      prof.unlocked.push(WEAPON_PASSIVES[type][idx]);
+      addLog(`${type.toUpperCase()} mastery unlocked: ${WEAPON_PASSIVES[type][idx]}.`);
+    }
+  });
+  if (newLevel > prevLevel) addLog(`${type.toUpperCase()} proficiency reached level ${newLevel}.`);
+}
+
+const slotLore = {
+  weapon: 'Tempered under moonlit anvils for relentless duels.',
+  helmet: 'A guardian crest that turns fear into resolve.',
+  chestArmor: 'Forged to hold the line against impossible odds.',
+  cape: 'Threads blessed by wardens of the Ashen Marches.',
+  offhand: 'Balanced for parries, counters, and steadfast defense.',
+  gloves: 'Grip and precision refined for split-second strikes.',
+  boots: 'Trusted steps on ruined roads and frozen marshes.',
+  necklace: 'A relic humming with quiet, ancient intent.',
+  ring1: 'Marked with runes of old vows.',
+  ring2: 'A bond of steel and omen.',
+  trinket1: 'A keepsake that stirs forgotten luck.',
+  trinket2: 'A charm against shadows beyond the firelight.',
+};
+
+function generateItems() {
+  state.itemPool = [];
+  const names = {
+    weapon:['Knight Sword','Spear','Falchion','Mace','War Pick','Greatsword'], helmet:['Iron Coif','Nasal Helm','Visor','Padded Coif','Chapel Helm'],
+    chestArmor:['Gambeson','Mail Hauberk','Steel Chestplate','Brigandine','Cuir Bouilli'], cape:['Warden Cloak','Ember Mantle','Griffon Cape','Ashweave Cape','Royal Drape'], armor:['Spaulders','Lamellar Mantle','Knight Pauldrons','Scale Wrap','Warder Harness'],
+    offhand:['Kite Shield','Buckler','Parry Dagger','Hook Shield','Lantern Guard'],
+    belt:['Studded Belt','Mercenary Belt','Oath Sash','Chain Belt','Hunter Cord'], leggings:['Rider Leggings','Mail Chausses','Riveted Cuisses','Padded Hose','Ash Greaves'],
+    boots:['Riding Boots','Mud Boots','Sabatons','Path Boots','Barrow Boots'], gloves:['Padded Gloves','Mail Mitts','Grip Gloves','Ash Gloves','Knight Gauntlets'],
+    necklace:['Reliquary','Sun Chain','Bone Charm','Oath Locket','Runed Necklace'], ring1:['Silver Ring','Garnet Ring','Ash Ring','Rune Ring','Knight Signet'],
+    ring2:['Copper Ring','Pilgrim Ring','Moon Ring','Iron Ring','Dust Band'], trinket1:['Saint Token','Witch Knot','Bone Dice','War Medal','Fog Charm'],
+    trinket2:['Tooth Charm','Prayer Bead','Coin Relic','Rune Pebble','Crow Feather'],
+  };
+  const rarityByLevel = (lvl) => {
+    if (lvl >= 15) return 'mythic';
+    if (lvl >= 13) return 'legendary';
+    if (lvl >= 10) return 'epic';
+    if (lvl >= 7) return 'rare';
+    if (lvl >= 4) return 'uncommon';
+    return 'common';
+  };
+  let id = 0;
+  SLOT_ORDER.forEach((slot, si) => {
+    for (let i = 0; i < 30; i += 1) {
+      const tier = 1 + Math.floor(i / 4);
+      const levelReq = 1 + Math.floor(i / 2);
+      const p = tier + (i % 3);
+      const s = {strength:0,intelligence:0,willpower:0,damage:0,attackSpeed:0,crit:0,reach:0,stunChance:0,defense:0,hpIncrease:0,evasion:0};
+      if (slot === 'weapon') { s.damage = 8 + p * 3; s.attackSpeed = +(0.8 + p * 0.05).toFixed(2); s.crit = 3 + p * 2; s.reach = 1 + Math.floor(p/2); s.stunChance = 2 + p; s.strength = Math.floor(p/2); }
+      else if (DEFENSE_SLOTS.includes(slot)) {
+        const chestBonus = slot === 'chestArmor' ? 3 : 0;
+        const armorBonus = slot === 'armor' ? 1 : 0;
+        s.defense = 4 + p * 2 + chestBonus + armorBonus;
+        s.hpIncrease = 10 + p * 5 + chestBonus * 3;
+        s.evasion = Math.max(1, 10 - p - chestBonus + armorBonus);
+      }
+      else { s.strength = slot.includes('ring') ? 1 : 0; s.intelligence = Math.floor(p/2); s.willpower = Math.ceil(p/2); s.crit = p; }
+      const rarity = rarityByLevel(levelReq);
+      let baseName = names[slot][i % names[slot].length];
+      if (slot === 'weapon' && baseName === 'Greatsword' && levelReq < 10) baseName = 'Knight Sword';
+      state.itemPool.push({
+        id:`it-${++id}`,
+        slot,
+        rarity,
+        tier,
+        affixes: [`${CONTENT.affixes.prefix[(id + si) % CONTENT.affixes.prefix.length]}`, `${CONTENT.affixes.suffix[(id + i) % CONTENT.affixes.suffix.length]}`],
+        sockets: rarity === 'mythic' ? 3 : rarity === 'legendary' ? 2 : rarity === 'epic' ? 1 : 0,
+        gems: [],
+        setName: (slot === 'chestArmor' || slot === 'boots') && tier >= 3 ? 'Ward of Cinders' : null,
+        uniqueName: (rarity === 'legendary' || rarity === 'mythic') && i % 7 === 0 ? 'Relic of the Dread March' : null,
+        levelReq,
+        bonusEffect: rarity === 'mythic' ? 'Mythic Ascendance' : rarity === 'legendary' ? 'Soulbound Ward' : rarity === 'epic' ? 'Arcane Resonance' : rarity === 'rare' ? 'Battle Focus' : rarity === 'uncommon' ? 'Tempered Edge' : 'Field Ready',
+        lore: slotLore[slot] || 'Recovered from a forgotten caravan of the Marches.',
+        name:`${rarity.toUpperCase()} ${baseName} ${tier}`,
+        stats:s,
+        appearance:{hue:(si*27+i*9)%360}
+      });
+    }
+  });
+  state.itemPool = state.itemPool.slice(0, 200);
+  const starterWeapon = state.itemPool.find((it) => it.slot === 'weapon' && it.rarity === 'common' && it.levelReq <= 2);
+  const starterChest = state.itemPool.find((it) => it.slot === 'chestArmor' && it.rarity === 'common' && it.tier === 1);
+  state.player.inventory = [starterWeapon, starterChest].filter(Boolean);
+}
+
+function equipItem(item) {
+  state.player.equipment[item.slot] = item;
+  state.selectedItemId = item.id;
+  applyKnight();
+  renderEquipment();
+  updateHud();
+  renderCharacterScreen();
+  renderItemDetails();
+  addLog(`Equipped ${item.name}.`);
+}
+
+function renderEquipment() {
+  el.equipment.innerHTML = '';
+  const leftSlots = ['helmet', 'gloves', 'weapon', 'ring1', 'trinket1'];
+  const rightSlots = ['necklace', 'chestArmor', 'offhand', 'ring2', 'trinket2'];
+  const bottomSlots = ['boots', 'leggings', 'cape'];
+
+  const makeSlot = (slot) => {
+    const it = state.player.equipment[slot];
+    const slotNode = document.createElement('div');
+    const rarityClass = it ? `rarity-${it.rarity}` : '';
+    const selectedClass = it && state.selectedItemId === it.id ? 'selected' : '';
+    slotNode.className = `equip-slot ${it ? '' : 'empty'} ${rarityClass} ${selectedClass}`;
+    slotNode.innerHTML = `
+      <div class="slot-core">${it ? iconSvg(it) : `<span class="slot-empty">${slotPlaceholderGlyph(slot)}</span>`}</div>
+      <span class="slot-label">${slotLabel(slot)}</span>
+    `;
+    slotNode.addEventListener('click', () => {
+      if (!it) return;
+      state.selectedItemId = it.id;
+      renderEquipment();
+      renderInventory();
+      renderItemDetails();
+    });
+    return slotNode;
+  };
+
+  const board = document.createElement('div');
+  board.className = 'equip-board';
+  const leftCol = document.createElement('div'); leftCol.className = 'equip-col';
+  const center = document.createElement('div'); center.className = 'equip-center';
+  const rightCol = document.createElement('div'); rightCol.className = 'equip-col';
+  const bottomRow = document.createElement('div'); bottomRow.className = 'equip-bottom';
+
+  leftSlots.forEach((slot) => leftCol.appendChild(makeSlot(slot)));
+  rightSlots.forEach((slot) => rightCol.appendChild(makeSlot(slot)));
+  bottomSlots.forEach((slot) => bottomRow.appendChild(makeSlot(slot)));
+  center.innerHTML = `<div class="paper-doll">Champion</div>`;
+
+  board.append(leftCol, center, rightCol);
+  el.equipment.append(board, bottomRow);
+}
+
+function slotPlaceholderGlyph(slot) {
+  if (slot.includes('ring')) return '◌';
+  if (slot.includes('trinket')) return '✦';
+  if (slot === 'weapon') return '⚔';
+  if (slot === 'offhand') return '🛡';
+  if (slot === 'boots') return '⋈';
+  if (slot === 'leggings') return '∥';
+  return '✧';
+}
+
+function renderInventory() {
+  el.inventory.innerHTML = '';
+  const filter = state.inventoryFilter;
+  const filtered = state.player.inventory.filter((item) => {
+    if (filter === 'all') return true;
+    if (RARITIES.includes(filter)) return item.rarity === filter;
+    if (filter === 'weapon') return item.slot === 'weapon';
+    if (filter === 'armor') return DEFENSE_SLOTS.includes(item.slot);
+    if (filter === 'chestArmor') return item.slot === 'chestArmor';
+    if (filter === 'helmet') return item.slot === 'helmet';
+    if (filter === 'jewelry') return ['necklace', 'ring1', 'ring2', 'trinket1', 'trinket2'].includes(item.slot);
+    return true;
+  });
+  filtered.slice(0, 40).forEach((item) => {
+    const equipped = state.player.equipment[item.slot];
+    const compareDefense = (item.stats.defense || 0) - (equipped?.stats?.defense || 0);
+    const compareDamage = (item.stats.damage || 0) - (equipped?.stats?.damage || 0);
+    const c = document.createElement('div');
+    c.className = `item-card ${state.selectedItemId === item.id ? 'selected' : ''}`;
+    c.innerHTML = `<div class='item-icon'>${iconSvg(item)}</div><div class='item-meta'><strong>${item.name}</strong><small>${slotLabel(item.slot)} · ${item.rarity}</small><small>${itemDesc(item.slot, item.stats)}</small><small>Compare: DMG ${compareDamage >= 0 ? '+' : ''}${compareDamage} | DEF ${compareDefense >= 0 ? '+' : ''}${compareDefense}</small><button>Equip</button><button class='salvage-btn'>Salvage</button></div>`;
+    c.addEventListener('click', () => {
+      state.selectedItemId = item.id;
+      renderInventory();
+      renderEquipment();
+      renderItemDetails();
+    });
+    c.querySelector('button').addEventListener('click', (ev) => { ev.stopPropagation(); equipItem(item); });
+    c.querySelector('.salvage-btn').addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      salvageItem(item.id);
+    });
+    el.inventory.appendChild(c);
+  });
+}
+
+function salvageItem(itemId) {
+  const idx = state.player.inventory.findIndex((it) => it.id === itemId);
+  if (idx < 0) return;
+  const item = state.player.inventory[idx];
+  state.player.inventory.splice(idx, 1);
+  state.player.materials.arcaneDust += 1 + (item.rarity === 'epic' ? 2 : item.rarity === 'legendary' ? 4 : item.rarity === 'mythic' ? 7 : 0);
+  state.player.materials.ironShard += 1 + item.tier;
+  addLog(`Salvaged ${item.name} for crafting materials.`);
+  renderInventory();
+  updateHud();
+}
+
+function maxPlayerHp() {
+  return 120 + totalStat('hpIncrease') + derivedAttr('endurance') * 4 + Math.max(0, state.player.level - 1) * 8;
+}
+
+function totalStat(k) { return Object.values(state.player.equipment).reduce((a, it) => a + (it?.stats?.[k] || 0), 0); }
+function derivedAttr(k) { return (state.player.stats[k] || 0) + totalStat(k); }
+
+function calculationSnapshot() {
+  const currentType = weaponTypeFromItem(state.player.equipment.weapon);
+  const profBonus = 1 + proficiencyDamageBonus(currentType);
+  const damage = Math.floor((totalStat('damage') + derivedAttr('strength') * 2) * profBonus);
+  const crit = (0.58 + totalStat('crit') * 0.01).toFixed(2);
+  const defense = totalStat('defense');
+  const hp = state.player.hp + totalStat('hpIncrease');
+  const evasion = (derivedAttr('dexterity') * 0.5 + totalStat('evasion')).toFixed(1);
+  const fatigue = Number.isFinite(state.player.fatigue) ? state.player.fatigue : 0;
+  const bodyTemp = Number.isFinite(state.player.bodyTemp) ? state.player.bodyTemp : 36.8;
+  return { damage, crit, defense, hp, evasion, fatigue: fatigue.toFixed(1), bodyTemp: bodyTemp.toFixed(1) };
+}
+
+function updateHud() {
+  const calc = calculationSnapshot();
+  const hpMax = maxPlayerHp();
+  state.player.hp = clamp(state.player.hp, 0, hpMax);
+  const manaMax = 60;
+  el.coreStats.innerHTML = `
+    <div class="resource-bar">
+      <div class="resource-label">HP ${Math.round(state.player.hp)}/${Math.round(hpMax)}</div>
+      <div class="resource-track hp"><span style="width:${clamp((state.player.hp / hpMax) * 100, 0, 100)}%"></span></div>
+    </div>
+    <div class="resource-bar">
+      <div class="resource-label">MANA ${Math.round(state.player.mana)}/${manaMax}</div>
+      <div class="resource-track mana"><span style="width:${clamp((state.player.mana / manaMax) * 100, 0, 100)}%"></span></div>
+    </div>
+  `;
+  el.resourceBars.innerHTML = '';
+  [['ATK', calc.damage], ['DEF', calc.defense], ['FTG', calc.fatigue], ['STM', state.player.stamina]].forEach(([k, v]) => {
+    const d = document.createElement('div');
+    d.className = 'pill';
+    d.textContent = `${k} ${typeof v === 'number' ? Math.round(v) : v}`;
+    el.resourceBars.appendChild(d);
+  });
+}
+
+function renderCharacterScreen() {
+  const calc = calculationSnapshot();
+  el.characterDetails.innerHTML = `
+    <p><strong>Map:</strong> ${MAP_SIZE}x${MAP_SIZE} with biome regions.</p>
+    <p><strong>Position:</strong> (${state.player.pos.x}, ${state.player.pos.y})</p>
+    <p><strong>Strength:</strong> ${derivedAttr('strength')} <span class='formula'>Base ${state.player.stats.strength} + Gear ${totalStat('strength')}. Affects melee damage.</span></p>
+    <p><strong>Dexterity:</strong> ${derivedAttr('dexterity')} <span class='formula'>Base ${state.player.stats.dexterity} + Gear ${totalStat('dexterity')}. Affects evasion and precision.</span></p>
+    <p><strong>Intelligence:</strong> ${derivedAttr('intelligence')} <span class='formula'>Base ${state.player.stats.intelligence} + Gear ${totalStat('intelligence')}. Affects assess/utility scaling.</span></p>
+    <p><strong>Endurance:</strong> ${derivedAttr('endurance')} <span class='formula'>Base ${state.player.stats.endurance} + Gear ${totalStat('endurance')}. Affects survival in exchanges.</span></p>
+    <p><strong>Willpower:</strong> ${derivedAttr('willpower')} <span class='formula'>Base ${state.player.stats.willpower} + Gear ${totalStat('willpower')}. Helps guard/focus resilience.</span></p>
+    <p><strong>Damage Formula:</strong> ${calc.damage} <span class='formula'>Weapon Damage ${totalStat('damage')} + (Strength ${derivedAttr('strength')} × 2)</span></p>
+    <p><strong>Crit Chance:</strong> ${Math.round(calc.crit * 100)}% <span class='formula'>(${calc.crit}) = base 0.58 + CritStat ${totalStat('crit')} × 0.01</span></p>
+    <p><strong>Defense:</strong> ${calc.defense} <span class='formula'>Sum of gear defense values.</span></p>
+    <p><strong>Evasion Rating:</strong> ${calc.evasion}% <span class='formula'>(Dexterity ${derivedAttr('dexterity')} × 0.5) + Gear Evasion ${totalStat('evasion')}</span></p>
+    <p><strong>Effective HP:</strong> ${calc.hp} <span class='formula'>Current HP ${state.player.hp} + HP bonus ${totalStat('hpIncrease')}</span></p>
+    <p><strong>Fatigue:</strong> ${calc.fatigue} <span class='formula'>Increases with difficult terrain; higher fatigue lowers sustained combat performance.</span></p>
+    <p><strong>Body Temperature:</strong> ${calc.bodyTemp}°C <span class='formula'>Biome climate shifts temperature; extreme cold/heat increases survival risk.</span></p>
+  `;
+  renderCharacterStatsPanel();
+  renderWeaponProficiencyPanel();
+}
+
+function renderCharacterStatsPanel() {
+  if (!el.characterStatsPanel) return;
+  const calc = calculationSnapshot();
+  const lines = [
+    ['Attack', calc.damage],
+    ['Defense', calc.defense],
+    ['Magic', derivedAttr('intelligence') * 2 + totalStat('willpower')],
+    ['Agility', Math.round(derivedAttr('dexterity') * 1.6)],
+    ['Vitality', calc.hp],
+    ['Crit %', Math.round(calc.crit * 100)],
+  ];
+  el.characterStatsPanel.innerHTML = lines.map(([k, v]) => `<div class="stat-chip"><strong>${k}</strong><br>${v}</div>`).join('');
+}
+
+function renderWeaponProficiencyPanel() {
+  if (!el.weaponProficiencyPanel) return;
+  ensureWeaponProficiency();
+  el.weaponProficiencyPanel.innerHTML = WEAPON_TYPES.map((type) => {
+    const prof = state.player.weaponProficiency[type];
+    const xp = prof.xp || 0;
+    const level = proficiencyLevel(type);
+    const unlocked = prof.unlocked?.length ? prof.unlocked.join(' • ') : 'No passive unlocked yet';
+    return `
+      <div class="wp-row">
+        <div class="wp-head"><strong>${type.toUpperCase()}</strong><span>Lv ${level}</span><span>${xp}/10000</span></div>
+        <div class="wp-bar"><span style="width:${(xp / 10000) * 100}%"></span></div>
+        <small>${unlocked}</small>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderItemDetails() {
+  if (!el.itemDetails) return;
+  const selected = state.player.inventory.find((it) => it.id === state.selectedItemId)
+    || Object.values(state.player.equipment).find((it) => it?.id === state.selectedItemId);
+  if (!selected) {
+    el.itemDetails.innerHTML = `<p>Select an equipped or inventory item to inspect its details.</p>`;
+    return;
+  }
+  el.itemDetails.innerHTML = `
+    <h4>${selected.name}</h4>
+    <span class="rarity ${selected.rarity}">${selected.rarity}</span>
+    ${selected.uniqueName ? `<p><strong>Unique:</strong> ${selected.uniqueName}</p>` : ''}
+    ${selected.setName ? `<p><strong>Set:</strong> ${selected.setName}</p>` : ''}
+    <p><strong>Type:</strong> ${slotLabel(selected.slot)}</p>
+    <p><strong>Level Requirement:</strong> ${selected.levelReq || selected.tier}</p>
+    <p><strong>Stats:</strong> ${itemDesc(selected.slot, selected.stats)}</p>
+    <p><strong>Affixes:</strong> ${(selected.affixes || []).join(' · ') || 'None'}</p>
+    <p><strong>Sockets:</strong> ${selected.sockets || 0} ${selected.gems?.length ? `(${selected.gems.join(', ')})` : ''}</p>
+    <p><strong>Bonus Effect:</strong> ${selected.bonusEffect || 'None'}</p>
+    <p><strong>Lore:</strong> ${selected.lore || 'An item from the Ashen Marches.'}</p>
+  `;
+}
+
+function generateBestiary() {
+  const names = [
+    'Bog Ghoul', 'Fen Raider', 'Crypt Hound', 'Ash Spider', 'Hollow Monk', 'Rook Bandit', 'Rot Boar', 'Cairn Witch', 'Mire Stalker', 'Grave Crow',
+    'Warden Shade', 'Pike Marauder', 'Blight Wolf', 'Bone Knight', 'Thorn Devourer', 'Howling Penitent', 'Stone Revenant', 'Blood Vicar', 'Maw Leech', 'Iron Troll',
+    'Dread Pilgrim', 'Fog Serpent', 'Ruin Harpy', 'Oathbreaker', 'Nightsworn Giant',
+    'Barrow Lancer', 'Tomb Acolyte', 'Soot Charger', 'Ravenous Lurker', 'Ember Gnawer',
+    'Witchfen Stalker', 'Marsh Paladin', 'Brine Widow', 'Mire Fang', 'Ghast Piper',
+    'Ashen Enforcer', 'Storm Cairn Drake', 'Crypt Arbalist', 'Cinder Harrier', 'Nocturne Howler',
+    'Moonlit Reaver', 'Dusk Ravager', 'Rimebound Sentry', 'Woad Hexer', 'Briar Executioner',
+  ];
+  state.bestiary = names.map((name, i) => ({
+    name,
+    tier: 1 + Math.floor(i / 7),
+    hp: 45 + i * 6,
+    attack: 9 + i,
+    poise: 30 + i * 3,
+    evasion: 0.05 + i * 0.005,
+    hue: (i * 17) % 360,
+    isBossTemplate: i % 11 === 0,
+  }));
+}
+
+function monsterSvg(name, h) {
+  /* Battle Brothers-style creatures: bold outlines, earthy hues, 2.5D ground shadow */
+  const S = '#0a0806';
+  if (name.includes('Spider')) {
+    return `<svg viewBox='0 0 80 80'>
+  <ellipse cx='38' cy='68' rx='18' ry='4' fill='rgba(0,0,0,0.38)'/>
+  <ellipse cx='40' cy='54' rx='20' ry='16' fill='hsl(${h} 48% 14%)' stroke='${S}' stroke-width='2.2'/>
+  <ellipse cx='40' cy='54' rx='12' ry='9' fill='hsl(${h} 55% 20%)' stroke='none'/>
+  <ellipse cx='36' cy='36' rx='14' ry='12' fill='hsl(${h} 52% 24%)' stroke='${S}' stroke-width='2'/>
+  <circle cx='30' cy='31' r='3.8' fill='hsl(0 78% 44%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='39' cy='30' r='3.2' fill='hsl(0 72% 40%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='25' cy='35' r='2.2' fill='hsl(22 78% 44%)' stroke='${S}' stroke-width='1'/>
+  <circle cx='43' cy='34' r='2.2' fill='hsl(22 78% 44%)' stroke='${S}' stroke-width='1'/>
+  <circle cx='30' cy='31' r='1.5' fill='#050303'/>
+  <circle cx='39' cy='30' r='1.2' fill='#050303'/>
+  <path d='M30 43 L23 52' stroke='hsl(${h} 38% 32%)' stroke-width='3' stroke-linecap='round'/>
+  <path d='M36 45 L31 54' stroke='hsl(${h} 38% 32%)' stroke-width='3' stroke-linecap='round'/>
+  <path d='M30 28 Q20 20 8 18' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M32 34 Q18 30 6 32' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M32 40 Q18 40 6 44' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M34 46 Q22 52 12 58' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M42 28 Q52 20 64 16' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M44 34 Q58 30 70 30' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M44 40 Q58 40 72 42' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M42 46 Q56 52 66 58' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <circle cx='19' cy='20' r='2.2' fill='hsl(${h} 26% 28%)' stroke='${S}' stroke-width='1'/>
+  <circle cx='17' cy='31' r='2.2' fill='hsl(${h} 26% 28%)' stroke='${S}' stroke-width='1'/>
+  <circle cx='53' cy='20' r='2.2' fill='hsl(${h} 26% 28%)' stroke='${S}' stroke-width='1'/>
+  <circle cx='58' cy='31' r='2.2' fill='hsl(${h} 26% 28%)' stroke='${S}' stroke-width='1'/>
+  <ellipse cx='37' cy='48' rx='6' ry='4' fill='rgba(255,255,255,.05)' stroke='none'/>
+</svg>`;
+  }
+  if (name.includes('Wolf') || name.includes('Hound')) {
+    return `<svg viewBox='0 0 80 80'>
+  <ellipse cx='40' cy='72' rx='22' ry='4' fill='rgba(0,0,0,0.36)'/>
+  <ellipse cx='44' cy='52' rx='26' ry='16' fill='hsl(${h} 34% 28%)' stroke='${S}' stroke-width='2.2'/>
+  <ellipse cx='26' cy='40' rx='17' ry='14' fill='hsl(${h} 38% 34%)' stroke='${S}' stroke-width='2.2'/>
+  <path d='M25 28 L19 14 L31 24' fill='hsl(${h} 42% 36%)' stroke='${S}' stroke-width='1.8'/>
+  <path d='M33 28 L31 12 L39 22' fill='hsl(${h} 42% 36%)' stroke='${S}' stroke-width='1.8'/>
+  <path d='M10 38 Q13 46 22 47 L22 34' fill='hsl(${h} 36% 40%)' stroke='${S}' stroke-width='1.8'/>
+  <circle cx='20' cy='36' r='4' fill='hsl(52 88% 55%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='20' cy='36' r='1.8' fill='#080605'/>
+  <circle cx='19' cy='35' r='.7' fill='rgba(255,255,255,.7)'/>
+  <ellipse cx='11' cy='39' rx='3.2' ry='2.6' fill='hsl(${h} 14% 14%)' stroke='${S}' stroke-width='1'/>
+  <path d='M9 44 L12 48 L16 43 L19 47 L23 43' stroke='${S}' stroke-width='1' fill='hsl(0 0% 88%)'/>
+  <path d='M30 48 Q38 46 52 48' stroke='hsl(${h} 24% 38%)' stroke-width='4.5' stroke-linecap='round' fill='none'/>
+  <line x1='22' y1='62' x2='18' y2='74' stroke='hsl(${h} 32% 32%)' stroke-width='5' stroke-linecap='round'/>
+  <line x1='32' y1='64' x2='28' y2='76' stroke='hsl(${h} 32% 32%)' stroke-width='5' stroke-linecap='round'/>
+  <line x1='52' y1='64' x2='48' y2='76' stroke='hsl(${h} 32% 32%)' stroke-width='5' stroke-linecap='round'/>
+  <line x1='62' y1='62' x2='58' y2='74' stroke='hsl(${h} 32% 32%)' stroke-width='5' stroke-linecap='round'/>
+  <path d='M66 52 Q76 42 72 30' stroke='hsl(${h} 30% 36%)' stroke-width='3.8' stroke-linecap='round' fill='none'/>
+  <path d='M35 50 Q45 46 56 48' stroke='hsl(${h} 24% 40%)' stroke-width='1.3' fill='none'/>
+  <path d='M32 56 Q44 52 58 54' stroke='hsl(${h} 24% 38%)' stroke-width='1.2' fill='none'/>
+  <path d='M16 72 L14 76 M19 74 L18 78' stroke='hsl(${h} 10% 18%)' stroke-width='1.6' stroke-linecap='round'/>
+</svg>`;
+  }
+  if (name.includes('Harpy') || name.includes('Crow')) {
+    return `<svg viewBox='0 0 80 80'>
+  <ellipse cx='40' cy='72' rx='18' ry='4' fill='rgba(0,0,0,0.34)'/>
+  <path d='M6 48 Q28 18 40 28 Q28 38 6 48 Z' fill='hsl(${h} 46% 20%)' stroke='${S}' stroke-width='2'/>
+  <path d='M74 48 Q52 18 40 28 Q52 38 74 48 Z' fill='hsl(${h} 46% 20%)' stroke='${S}' stroke-width='2'/>
+  <path d='M8 46 Q20 26 34 32' stroke='hsl(${h} 38% 30%)' stroke-width='1.3' fill='none'/>
+  <path d='M12 48 Q24 32 36 36' stroke='hsl(${h} 38% 30%)' stroke-width='1.1' fill='none'/>
+  <path d='M72 46 Q60 26 46 32' stroke='hsl(${h} 38% 30%)' stroke-width='1.3' fill='none'/>
+  <path d='M68 48 Q56 32 44 36' stroke='hsl(${h} 38% 30%)' stroke-width='1.1' fill='none'/>
+  <ellipse cx='40' cy='52' rx='14' ry='17' fill='hsl(${h} 52% 32%)' stroke='${S}' stroke-width='2.2'/>
+  <circle cx='40' cy='34' r='13' fill='hsl(${h} 48% 28%)' stroke='${S}' stroke-width='2.2'/>
+  <path d='M40 34 L34 41 L40 39 L46 41 Z' fill='hsl(52 78% 56%)' stroke='${S}' stroke-width='1.5'/>
+  <path d='M35 40 L40 38 L45 40' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='35' cy='30' r='3.8' fill='hsl(52 88% 55%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='45' cy='30' r='3.8' fill='hsl(52 88% 55%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='35' cy='30' r='1.6' fill='#060404'/><circle cx='45' cy='30' r='1.6' fill='#060404'/>
+  <circle cx='34' cy='29' r='.7' fill='rgba(255,255,255,.7)'/><circle cx='44' cy='29' r='.7' fill='rgba(255,255,255,.7)'/>
+  <path d='M36 23 L38 13 L40 22' stroke='hsl(${h} 58% 48%)' stroke-width='2.2' stroke-linecap='round' fill='none'/>
+  <path d='M40 22 L42 11 L44 20' stroke='hsl(${h} 58% 48%)' stroke-width='2.2' stroke-linecap='round' fill='none'/>
+  <path d='M33 67 Q30 73 26 75 M33 67 Q32 75 29 77 M33 67 Q34 75 32 79' stroke='hsl(${h} 16% 24%)' stroke-width='2.4' stroke-linecap='round'/>
+  <path d='M47 67 Q50 73 54 75 M47 67 Q48 75 51 77 M47 67 Q46 75 48 79' stroke='hsl(${h} 16% 24%)' stroke-width='2.4' stroke-linecap='round'/>
+</svg>`;
+  }
+  /* Generic humanoid monster — horned creature with glowing eyes */
+  return `<svg viewBox='0 0 80 80'>
+  <ellipse cx='40' cy='72' rx='20' ry='4' fill='rgba(0,0,0,0.36)'/>
+  <path d='M24 62 Q20 44 26 30 Q40 22 54 30 Q60 44 56 62 Z' fill='hsl(${h} 36% 24%)' stroke='${S}' stroke-width='2.2'/>
+  <circle cx='40' cy='28' r='15' fill='hsl(${h} 40% 32%)' stroke='${S}' stroke-width='2.2'/>
+  <path d='M30 18 L24 5 L34 16' fill='hsl(${h} 30% 26%)' stroke='${S}' stroke-width='1.8'/>
+  <path d='M50 18 L56 5 L46 16' fill='hsl(${h} 30% 26%)' stroke='${S}' stroke-width='1.8'/>
+  <circle cx='34' cy='26' r='5.5' fill='hsl(${h} 78% 54%)' stroke='${S}' stroke-width='1.5'/>
+  <circle cx='46' cy='26' r='5.5' fill='hsl(${h} 78% 54%)' stroke='${S}' stroke-width='1.5'/>
+  <circle cx='34' cy='26' r='2.8' fill='#080506'/>
+  <circle cx='46' cy='26' r='2.8' fill='#080506'/>
+  <circle cx='33' cy='25' r='1' fill='rgba(255,255,255,.6)'/>
+  <circle cx='45' cy='25' r='1' fill='rgba(255,255,255,.6)'/>
+  <path d='M32 36 Q40 43 48 36' stroke='${S}' stroke-width='1.5' fill='hsl(${h} 28% 18%)'/>
+  <path d='M34 36 L36 40 L38 36 L40 40 L42 36 L44 40 L46 36' fill='none' stroke='hsl(0 0% 80%)' stroke-width='1.2'/>
+  <path d='M24 40 Q12 44 8 54' stroke='hsl(${h} 32% 30%)' stroke-width='5.5' stroke-linecap='round' fill='none'/>
+  <path d='M56 40 Q68 44 72 54' stroke='hsl(${h} 32% 30%)' stroke-width='5.5' stroke-linecap='round' fill='none'/>
+  <path d='M6 54 L4 58 M8 56 L7 60 M10 55 L10 59' stroke='hsl(${h} 14% 52%)' stroke-width='1.6' stroke-linecap='round'/>
+  <path d='M74 54 L76 58 M72 56 L73 60 M70 55 L70 59' stroke='hsl(${h} 14% 52%)' stroke-width='1.6' stroke-linecap='round'/>
+  <path d='M30 42 Q40 38 50 42' stroke='hsl(${h} 26% 34%)' stroke-width='1.3' fill='none'/>
+  <line x1='32' y1='62' x2='28' y2='74' stroke='hsl(${h} 34% 28%)' stroke-width='4.5' stroke-linecap='round'/>
+  <line x1='48' y1='62' x2='52' y2='74' stroke='hsl(${h} 34% 28%)' stroke-width='4.5' stroke-linecap='round'/>
+</svg>`;
+}
+
+function respawnMonsters() {
+  if (!state.bestiary.length) return;
+  state.monsters = [];
+  replenishMonsters(24);
+}
+
+function replenishMonsters(targetCount = 24) {
+  if (!state.bestiary.length) return;
+  const p = state.player.pos;
+  const zone = zoneAt(p.x, p.y);
+  for (let i = state.monsters.length; i < targetCount; i += 1) {
+    const pool = state.bestiary.filter((b) => b.tier <= zone.maxTier + 1 && b.tier >= Math.max(1, zone.minTier - 1));
+    const t = (pool.length ? pool : state.bestiary)[rand(0, (pool.length ? pool : state.bestiary).length - 1)];
+    const isElite = Math.random() < 0.16;
+    const isBoss = state.dungeon.active && !state.dungeon.objectiveBossDefeated && (t.isBossTemplate || Math.random() < 0.12);
+    const progressionScale = 1 + Math.max(0, state.player.level - 1) * 0.065 + Math.max(0, zone.maxTier - 1) * 0.08;
+    state.monsters.push({
+      ...t,
+      uid: `m-${Date.now()}-${i}`,
+      isElite,
+      isBoss,
+      x: clamp(p.x + rand(-18, 18), 0, MAP_SIZE - 1),
+      y: clamp(p.y + rand(-18, 18), 0, MAP_SIZE - 1),
+      hpNow: Math.floor(t.hp * progressionScale * (isBoss ? 2.5 : isElite ? 1.45 : 1)),
+      poiseNow: t.poise,
+      attack: Math.floor(t.attack * progressionScale),
+      intent: 'Strike',
+    });
+  }
+}
+
+function drawMonsters() {
+  const { x: px, y: py } = state.player.pos;
+  const fragment = document.createDocumentFragment();
+  state.monsters.forEach((m) => {
+    if (Math.abs(m.x - px) > VIEW_RADIUS || Math.abs(m.y - py) > VIEW_RADIUS) return;
+    const p = iso(m.x - px + VIEW_RADIUS, m.y - py + VIEW_RADIUS);
+    const posX = p.x + 38;
+    const posY = p.y + 24;
+    const tileDist = Math.max(Math.abs(m.x - px), Math.abs(m.y - py));
+    const isNear = tileDist <= 5;
+    // Aggro ring as standalone sibling — avoids stacking-context clipping from monster's animation
+    const ring = document.createElement('div');
+    ring.className = `monster-aggro-ring${isNear ? ' aggro-near' : ''}`;
+    ring.style.left = `${posX}px`;
+    ring.style.top = `${posY}px`;
+    fragment.appendChild(ring);
+    // Monster sprite
+    const node = document.createElement('div');
+    node.className = `monster${isNear ? ' aggro-near' : ''}`;
+    node.dataset.uid = m.uid;
+    node.innerHTML = `<div class="monster-label">${m.name} · Lv ${m.tier}</div>${monsterSvg(m.name, m.hue)}`;
+    node.style.left = `${posX}px`;
+    node.style.top = `${posY}px`;
+    fragment.appendChild(node);
+  });
+  return fragment;
+}
+
+function openCombatStage(monster) {
+  if (!el.combatStage) return;
+  el.combatStage.classList.remove('hidden');
+  el.combatPlayer.innerHTML = knightSvg(getKnightAppearance());
+  el.combatMonster.innerHTML = monsterSvg(monster.name, monster.hue);
+}
+
+function closeCombatStage() {
+  if (!el.combatStage) return;
+  el.combatStage.classList.add('hidden');
+  if (el.combatPlayerNums) el.combatPlayerNums.innerHTML = '';
+  if (el.combatMonsterNums) el.combatMonsterNums.innerHTML = '';
+}
+
+function combatActorAnimate(target, cls) {
+  target.classList.remove(cls);
+  void target.offsetWidth;
+  target.classList.add(cls);
+}
+
+function showCombatDamage(targetNums, value, crit = false) {
+  if (!targetNums) return;
+  const n = document.createElement('div');
+  n.className = `combat-float ${crit ? 'crit' : ''}`;
+  n.textContent = `${value}`;
+  targetNums.appendChild(n);
+  setTimeout(() => n.remove(), 850);
+}
+
+function bindTabs() {
+  document.querySelectorAll('.nav-btn').forEach((btn) => bindTapAction(btn, () => {
+    document.querySelectorAll('.nav-btn').forEach((b) => b.classList.remove('active'));
+    document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById(`screen-${btn.dataset.screen}`).classList.add('active');
+    if (btn.dataset.screen === 'character') renderCharacterScreen();
+  }));
+}
+
+function bindTapAction(node, handler) {
+  if (!node) return;
+  let gate = false;
+  const run = (ev) => {
+    ev.preventDefault?.();
+    if (gate) return;
+    gate = true;
+    handler(ev);
+    setTimeout(() => { gate = false; }, 220);
+  };
+  node.addEventListener('pointerup', run);
+  node.addEventListener('click', run);
+}
+
+function bindMapTap() {
+  const onTap = (clientX, clientY, sourceTarget = null) => {
+    if (state.mode === 'combat') {
+      el.encounter.textContent = `Combat locked: defeat ${state.encounter?.name || 'the enemy'} to move again.`;
+      return;
+    }
+    const tappedMonsterNode = sourceTarget?.closest?.('.monster') || document.elementFromPoint(clientX, clientY)?.closest?.('.monster');
+    if (tappedMonsterNode?.dataset?.uid) {
+      const tappedMonster = state.monsters.find((m) => m.uid === tappedMonsterNode.dataset.uid);
+      if (tappedMonster) {
+        engageMonsterGroup([tappedMonster]);
+        return;
+      }
+    }
+    const { x, y } = screenToWorldTile(clientX, clientY);
+    state.destination = { x, y };
+    state.mode = 'explore';
+    state.encounter = null;
+    el.encounter.textContent = `Travelling to (${x}, ${y}) through ${biomeAt(x, y)}.`;
+  };
+  el.world.addEventListener('pointerdown', (ev) => onTap(ev.clientX, ev.clientY, ev.target));
+  el.world.addEventListener('click', (ev) => onTap(ev.clientX, ev.clientY, ev.target));
+  el.world.addEventListener('touchstart', (ev) => {
+    if (!ev.touches?.length) return;
+    onTap(ev.touches[0].clientX, ev.touches[0].clientY, ev.target);
+  }, { passive: true });
+}
+
+function setExploreActions() {
+  el.actions.innerHTML = '';
+  const camp = document.createElement('button');
+  camp.textContent = 'Make Camp';
+  camp.addEventListener('click', () => {
+    state.day += 0.35;
+    state.player.stamina = clamp(state.player.stamina + 14, 0, 100);
+    state.player.focus = clamp(state.player.focus + 10, 0, 100);
+    state.player.fatigue = clamp(state.player.fatigue - 8, 0, 100);
+    addLog('You establish a small campfire and recover composure.');
+    updateHud();
+    renderCharacterScreen();
+  });
+  const forage = document.createElement('button');
+  forage.textContent = 'Forage';
+  forage.addEventListener('click', () => {
+    const biome = biomeAt(state.player.pos.x, state.player.pos.y);
+    const gain = biome === 'swamp' || biome === 'ruin' ? 4 : 7;
+    state.player.hp = clamp(state.player.hp + gain, 0, maxPlayerHp());
+    state.player.stamina = clamp(state.player.stamina - 3, 0, 100);
+    addLog(`You forage in ${biome} terrain and recover ${gain} vitality.`);
+    updateHud();
+  });
+  const dungeon = document.createElement('button');
+  dungeon.textContent = state.dungeon.active ? 'Leave Dungeon' : 'Enter Dungeon';
+  dungeon.addEventListener('click', () => {
+    state.dungeon.active = !state.dungeon.active;
+    state.dungeon.objectiveBossDefeated = false;
+    state.dungeon.tier = zoneAt(state.player.pos.x, state.player.pos.y).maxTier;
+    state.monsters = [];
+    replenishMonsters(state.dungeon.active ? 12 : 24);
+    addLog(state.dungeon.active ? `Entered dungeon tier ${state.dungeon.tier}.` : 'Returned to the overworld.');
+    setExploreActions();
+  });
+  el.actions.append(camp, forage, dungeon);
+}
+
+function progressQuest(id, amount) {
+  const q = state.quests.find((x) => x.id === id);
+  if (!q || q.done) return;
+  q.progress = Math.min(q.goal, q.progress + amount);
+  if (q.progress >= q.goal) {
+    q.done = true;
+    addLog(`Quest complete: ${q.title}.`);
+    state.player.materials.arcaneDust += 5;
+  }
+}
+
+function updateQuestTracker() {
+  if (!el.questTracker) return;
+  const active = state.quests.find((q) => !q.done) || state.quests[0];
+  if (!active) { el.questTracker.textContent = 'Quest: None'; return; }
+  el.questTracker.textContent = `Quest: ${active.title} — ${active.progress}/${active.goal}`;
+}
+
+function exportSave() {
+  return {
+    version: SAVE_VERSION,
+    day: state.day,
+    mode: state.mode,
+    player: state.player,
+    monsters: state.monsters,
+    encounter: state.encounter,
+    encounterGroup: state.encounterGroup,
+    quests: state.quests,
+    dungeon: state.dungeon,
+  };
+}
+
+function applySaveData(data) {
+  if (!data || !data.player) return false;
+  const version = data.version || 1;
+  state.day = data.day ?? 1;
+  state.mode = data.mode ?? 'explore';
+  const basePlayer = {
+    pos: { x: 512, y: 512 },
+    hp: 120,
+    stamina: 100,
+    focus: 70,
+    fatigue: 0,
+    bodyTemp: 36.8,
+    level: 1,
+    xp: 0,
+    xpToNext: 100,
+    unspentAttr: 0,
+    mana: 40,
+    skillCooldowns: { powerStrike: 0, heroicSlash: 0, whirlwind: 0, shieldWall: 0, execute: 0 },
+    combatEffects: { shieldWall: 0, evasive: 0 },
+    stats: { strength: 7, dexterity: 7, intelligence: 6, endurance: 8, willpower: 6 },
+    equipment: {},
+    inventory: [],
+  };
+  state.player = {
+    ...basePlayer,
+    ...data.player,
+    pos: { ...basePlayer.pos, ...(data.player.pos || {}) },
+    stats: { ...basePlayer.stats, ...(data.player.stats || {}) },
+    xp: Number.isFinite(data.player.xp) ? data.player.xp : 0,
+    level: Number.isFinite(data.player.level) ? data.player.level : 1,
+    xpToNext: Number.isFinite(data.player.xpToNext) ? data.player.xpToNext : 100,
+    unspentAttr: Number.isFinite(data.player.unspentAttr) ? data.player.unspentAttr : 0,
+    mana: Number.isFinite(data.player.mana) ? data.player.mana : 40,
+    skillCooldowns: { ...basePlayer.skillCooldowns, ...(data.player.skillCooldowns || {}) },
+    combatEffects: { ...basePlayer.combatEffects, ...(data.player.combatEffects || {}) },
+    equipment: { ...(data.player.equipment || {}) },
+    inventory: Array.isArray(data.player.inventory) ? data.player.inventory : [],
+  };
+  ensureWeaponProficiency();
+  state.monsters = Array.isArray(data.monsters) ? data.monsters : [];
+  state.encounter = data.encounter ?? null;
+  state.encounterGroup = Array.isArray(data.encounterGroup) ? data.encounterGroup : (state.encounter ? [state.encounter] : []);
+  state.quests = Array.isArray(data.quests) ? data.quests : state.quests;
+  state.dungeon = data.dungeon || state.dungeon;
+  if (version < 2) {
+    state.player.materials = state.player.materials || { arcaneDust: 0, ironShard: 0 };
+    state.player.stash = state.player.stash || [];
+    state.quests = state.quests?.length ? state.quests : [{ id: 'hunt-elite', title: 'Cull Elite Threats', objective: 'Defeat 2 elite monsters', progress: 0, goal: 2, done: false }];
+  }
+  state.destination = null;
+  return true;
+}
+
+function saveGame() {
+  try {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(exportSave()));
+    addLog('Game saved to local storage.');
+  } catch (err) {
+    addLog('Save failed (storage unavailable).');
+  }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) {
+      addLog('No save found.');
+      return;
+    }
+    const data = JSON.parse(raw);
+    if (!applySaveData(data)) {
+      addLog('Save file was invalid.');
+      return;
+    }
+    applyKnight();
+    renderEquipment();
+    renderInventory();
+    renderCharacterScreen();
+    renderItemDetails();
+    updateHud();
+    renderMapChunk();
+    updateQuestTracker();
+    if (state.player.unspentAttr > 0) showLevelUpPanel();
+    addLog('Save loaded.');
+  } catch (err) {
+    addLog('Load failed (corrupt save).');
+  }
+}
+
+function startNewGame() {
+  const confirmed = window.confirm('Start a new game? This will delete your current saved progress.');
+  if (!confirmed) return;
+  hardResetGame();
+}
+
+function hardResetGame() {
+  localStorage.removeItem(SAVE_KEY);
+  window.location.reload();
+}
+
+function handlePlayerDefeat() {
+  state.mode = 'defeated';
+  state.destination = null;
+  state.encounter = null;
+  state.encounterGroup = [];
+  closeCombatStage();
+  el.actions.innerHTML = '';
+  el.encounter.textContent = 'Defeat. You were overwhelmed in the Dreadlands... restarting.';
+  addLog('You fell in battle. A new expedition begins.');
+  setTimeout(() => hardResetGame(), 900);
+}
+
+function moveStep(ts) {
+  if (state.mode === 'combat') return;
+  if (!state.destination || state.mode !== 'explore') return;
+  if (ts - state.lastStep < state.stepMs) return;
+  state.lastStep = ts;
+  const dx = Math.sign(state.destination.x - state.player.pos.x);
+  const dy = Math.sign(state.destination.y - state.player.pos.y);
+  if (!dx && !dy) return;
+  state.player.pos.x = clamp(state.player.pos.x + dx, 0, MAP_SIZE - 1);
+  state.player.pos.y = clamp(state.player.pos.y + dy, 0, MAP_SIZE - 1);
+  if (state.player.pos.x === state.destination.x && state.player.pos.y === state.destination.y) {
+    state.destination = null;
+  }
+  const biome = biomeAt(state.player.pos.x, state.player.pos.y);
+  const travel = biomeTravelProfile(biome);
+  state.player.stamina = clamp(state.player.stamina - travel.stamina, 0, 100);
+  state.player.fatigue = clamp(state.player.fatigue + travel.fatigue * 0.08, 0, 100);
+  state.player.bodyTemp = clamp(state.player.bodyTemp + travel.temp * 0.08, 34.0, 39.5);
+  state.day += 0.03;
+  el.player.classList.add('walk');
+  setTimeout(() => el.player.classList.remove('walk'), 150);
+  renderMapChunk();
+  updateHud();
+  checkEncounter();
+  if (state.monsters.length < 12) replenishMonsters(24);
+}
+
+function checkEncounter() {
+  const p = state.player.pos;
+  const lockMonsters = state.monsters.filter((x) => Math.max(Math.abs(x.x - p.x), Math.abs(x.y - p.y)) <= AGGRO_RADIUS && (x.hpNow ?? x.hp) > 0);
+  if (lockMonsters.length) {
+    engageMonsterGroup(lockMonsters);
+    return;
+  }
+  if (state.destination) {
+    const biomeMoving = biomeAt(state.player.pos.x, state.player.pos.y);
+    el.encounter.textContent = `Marching... Biome: ${biomeMoving}.`;
+    return;
+  }
+  const biome = biomeAt(p.x, p.y);
+  const zone = zoneAt(p.x, p.y);
+  const travel = biomeTravelProfile(biome);
+  el.encounter.textContent = `Exploring ${zone.name} (${zone.minTier}-${zone.maxTier}). Biome: ${biome}. Terrain load ${travel.stamina.toFixed(2)}x.`;
+  closeCombatStage();
+  setExploreActions();
+}
+
+function engageMonsterGroup(monsters) {
+  if (!monsters?.length) return;
+  const normalized = monsters
+    .map((monster) => {
+      monster.hpNow = Number.isFinite(monster.hpNow) ? monster.hpNow : Math.max(1, monster.hp || 1);
+      monster.poiseNow = Number.isFinite(monster.poiseNow) ? monster.poiseNow : Math.max(1, monster.poise || 1);
+      monster.attack = Number.isFinite(monster.attack) ? monster.attack : Math.max(1, 8 + (monster.tier || 1));
+      return monster;
+    })
+    .filter((monster) => monster.hpNow > 0);
+  if (!normalized.length) return;
+  state.destination = null;
+  state.encounterGroup = normalized;
+  state.encounter = normalized[0];
+  state.mode = 'combat';
+  openCombatStage(state.encounter);
+  const names = normalized.slice(0, 3).map((m) => m.name).join(', ');
+  const extra = normalized.length > 3 ? ` +${normalized.length - 3} more` : '';
+  el.encounter.textContent = `Enemies engaged (${normalized.length}): ${names}${extra}.`;
+  renderCombatActions();
+}
+
+function renderCombatActions() {
+  el.actions.innerHTML = '';
+  ['Strike', 'Power Strike', 'Guard', 'Dodge', 'Assess'].forEach((a) => {
+    const b = document.createElement('button');
+    b.textContent = a;
+    b.addEventListener('click', () => combatAction(a.toLowerCase()));
+    el.actions.appendChild(b);
+  });
+  Object.entries(SKILLS).forEach(([id, skill]) => {
+    if (state.player.level < skill.unlockLevel) return;
+    const b = document.createElement('button');
+    const cd = state.player.skillCooldowns[id] || 0;
+    b.textContent = cd > 0 ? `${skill.label} (${cd})` : `${skill.label}`;
+    b.title = `${skill.desc} Mana ${skill.mana}. CD ${skill.cooldown}.`;
+    b.addEventListener('click', () => combatAction(`skill:${id}`));
+    el.actions.appendChild(b);
+  });
+}
+
+function combatAction(action) {
+  if (!state.encounter) return;
+  if (action === 'assess') { el.encounter.textContent = `${state.encounter.name} HP ${Math.max(0, state.encounter.hpNow)} Poise ${Math.max(0, state.encounter.poiseNow)}`; enemyTurn(1); return; }
+  if (action === 'guard') { state.player.stamina = clamp(state.player.stamina + 8, 0, 100); state.player.combatEffects.shieldWall = Math.max(state.player.combatEffects.shieldWall, 0.3); enemyTurn(0.6); return; }
+  if (action === 'dodge') { state.player.stamina = clamp(state.player.stamina - 6, 0, 100); state.player.combatEffects.evasive = 0.55; enemyTurn(0.35); return; }
+  if (action === 'power strike') {
+    if (state.player.skillCooldowns.powerStrike > 0 || state.player.mana < 12) {
+      addLog('Power Strike is unavailable.');
+      enemyTurn(1);
+      return;
+    }
+    state.player.mana = clamp(state.player.mana - 12, 0, 60);
+    state.player.skillCooldowns.powerStrike = 3;
+  }
+  if (action.startsWith('skill:')) {
+    const skillId = action.split(':')[1];
+    const skill = SKILLS[skillId];
+    if (!skill || state.player.level < skill.unlockLevel) return;
+    if ((state.player.skillCooldowns[skillId] || 0) > 0 || state.player.mana < skill.mana) {
+      addLog(`${skill.label} is unavailable.`);
+      enemyTurn(1);
+      return;
+    }
+    state.player.mana = clamp(state.player.mana - skill.mana, 0, 60);
+    state.player.skillCooldowns[skillId] = skill.cooldown;
+    let multiplier = 1.1;
+    let poiseDamage = 7;
+    if (skillId === 'heroicSlash') {
+      multiplier = 1.25;
+      poiseDamage = 12;
+    } else if (skillId === 'whirlwind') {
+      multiplier = 1.4;
+      poiseDamage = 16;
+    } else if (skillId === 'shieldWall') {
+      state.player.combatEffects.shieldWall = 0.75;
+      addLog('Shield Wall raised: incoming damage reduced.');
+      enemyTurn(0.6);
+      updateHud();
+      renderCombatActions();
+      return;
+    } else if (skillId === 'execute') {
+      const hpPct = state.encounter.hpNow / Math.max(1, state.encounter.hp);
+      multiplier = hpPct < 0.35 ? 2.1 : 1.2;
+      poiseDamage = hpPct < 0.35 ? 20 : 8;
+    }
+    animatePlayerAttack(state.encounter.uid);
+    if (el.combatPlayer) combatActorAnimate(el.combatPlayer, 'attack');
+    const weaponType = weaponTypeFromItem(state.player.equipment.weapon);
+    addWeaponProficiencyXP(weaponType, 48);
+    const base = Math.floor((totalStat('damage') + derivedAttr('strength') * 2 + rand(5, 11)) * (1 + proficiencyDamageBonus(weaponType)));
+    let dealt = Math.floor(base * multiplier);
+    let crit = false;
+    const critChance = 0.2 + totalStat('crit') * 0.006 + (skillId === 'whirlwind' ? 0.08 : 0);
+    if (Math.random() < critChance) { dealt = Math.floor(dealt * 1.55); crit = true; }
+    state.encounter.hpNow -= dealt;
+    state.encounter.poiseNow -= poiseDamage;
+    if (state.encounter.poiseNow <= 0) {
+      dealt += Math.floor(base * 0.25);
+      state.encounter.hpNow -= Math.floor(base * 0.25);
+      state.encounter.poiseNow = state.encounter.poise;
+      addLog(`${skill.label} broke enemy poise!`);
+    }
+    if (el.combatMonster) combatActorAnimate(el.combatMonster, 'hit');
+    showCombatDamage(el.combatMonsterNums, dealt, crit);
+    enemyTurn(1);
+    updateHud();
+    renderCombatActions();
+    if (state.encounter?.hpNow > 0) return;
+    resolveEncounterKill();
+    return;
+  }
+  animatePlayerAttack(state.encounter.uid);
+  if (el.combatPlayer) combatActorAnimate(el.combatPlayer, 'attack');
+  const weaponType = weaponTypeFromItem(state.player.equipment.weapon);
+  addWeaponProficiencyXP(weaponType, action === 'power strike' ? 55 : 30);
+  const dmgBase = Math.floor((totalStat('damage') + state.player.stats.strength * 2 + rand(4, 10)) * (1 + proficiencyDamageBonus(weaponType)));
+  const dmg = action === 'power strike' ? Math.floor(dmgBase * 1.65) : dmgBase;
+  let dealt = dmg;
+  let crit = false;
+  if (Math.random() < (0.58 + totalStat('crit') * 0.01)) { dealt = Math.floor(dmg * 1.5); crit = true; }
+  state.encounter.hpNow -= dealt;
+  if (el.combatMonster) combatActorAnimate(el.combatMonster, 'hit');
+  showCombatDamage(el.combatMonsterNums, dealt, crit);
+  enemyTurn(1);
+  renderCombatActions();
+  if (state.encounter.hpNow <= 0) {
+    resolveEncounterKill();
+  }
+}
+
+function resolveEncounterKill() {
+  const defeated = state.encounter;
+  if (!defeated) return;
+  addLog(`Defeated ${defeated.name}.`);
+  if (defeated.isElite || defeated.isBoss) progressQuest('hunt-elite', 1);
+  if (defeated.isBoss) state.dungeon.objectiveBossDefeated = true;
+  grantXp((defeated.tier || 1) * 24 + rand(8, 18));
+  const loot = rollLoot(defeated);
+  if (loot) {
+    state.player.inventory.unshift(loot);
+    addLog(`Loot found: ${loot.name}.`);
+    showLootDrop(loot);
+    renderInventory();
+  }
+  state.monsters = state.monsters.filter((m) => m.uid !== defeated.uid);
+  state.encounterGroup = (state.encounterGroup || []).filter((m) => m.uid !== defeated.uid && (m.hpNow ?? m.hp) > 0);
+  if (state.encounterGroup.length > 0) {
+    state.encounter = state.encounterGroup[0];
+    openCombatStage(state.encounter);
+    el.encounter.textContent = `Enemies remaining: ${state.encounterGroup.length}. Target: ${state.encounter.name}.`;
+    renderCombatActions();
+    updateQuestTracker();
+    return;
+  }
+  state.encounter = null;
+  state.mode = 'explore';
+  closeCombatStage();
+  setExploreActions();
+  updateQuestTracker();
+}
+
+function rollLoot(monster) {
+  const tier = monster.tier || 1;
+  const targetLevel = clamp(Math.round(tier * 3 + state.player.level * 0.35 + rand(-1, 2)), 1, 15);
+  const rarityAllowed = targetLevel <= 3
+    ? ['common', 'uncommon']
+    : targetLevel <= 6
+      ? ['common', 'uncommon', 'rare']
+      : targetLevel <= 9
+        ? ['uncommon', 'rare', 'epic']
+        : targetLevel <= 12
+          ? ['rare', 'epic', 'legendary']
+          : ['epic', 'legendary', 'mythic'];
+  const pool = state.itemPool.filter((it) => Math.abs((it.levelReq || 1) - targetLevel) <= 2 && rarityAllowed.includes(it.rarity));
+  const fallbackPool = state.itemPool.length ? state.itemPool : state.player.inventory;
+  const sourcePool = pool.length ? pool : fallbackPool;
+  if (!sourcePool.length) return null;
+  const weighted = sourcePool
+    .filter((it) => DEFENSE_SLOTS.includes(it.slot) || it.slot === 'weapon')
+    .flatMap((it) => {
+      const isLargeWeapon = it.slot === 'weapon' && LARGE_WEAPONS.some((w) => it.name.includes(w));
+      if (isLargeWeapon) return (it.levelReq || 1) >= 10 ? [it] : [];
+      const weight = it.slot === 'weapon' ? 2 : 3;
+      return Array.from({ length: weight }, () => it);
+    });
+  const picked = (weighted.length && Math.random() > 0.2)
+    ? weighted[rand(0, weighted.length - 1)]
+    : sourcePool[rand(0, sourcePool.length - 1)];
+  return {
+    ...picked,
+    id: `loot-${Date.now()}-${Math.floor(Math.random() * 100000)}`,
+    name: picked.name,
+    stats: { ...picked.stats },
+    appearance: { ...picked.appearance },
+  };
+}
+
+function showLootDrop(item) {
+  if (!el.lootDrop) return;
+  el.lootDrop.textContent = `Loot Acquired: ${item.name}`;
+  el.lootDrop.classList.remove('show');
+  void el.lootDrop.offsetWidth;
+  el.lootDrop.classList.add('show');
+}
+
+function slotLabel(slot) {
+  return SLOT_LABELS[slot] || slot;
+}
+
+function enemyTurn(mult) {
+  if (!state.encounter) return;
+  Object.keys(state.player.skillCooldowns).forEach((k) => {
+    state.player.skillCooldowns[k] = Math.max(0, (state.player.skillCooldowns[k] || 0) - 1);
+  });
+  state.encounter.intent = Math.random() > 0.6 ? 'Heavy Blow' : 'Quick Slash';
+  const fatiguePenalty = 1 + state.player.fatigue / 220;
+  const evasive = state.player.combatEffects.evasive || 0;
+  if (Math.random() < evasive) {
+    addLog('You evade the incoming strike.');
+    state.player.combatEffects.evasive = 0;
+    updateHud();
+    renderCombatActions();
+    return;
+  }
+  const attackers = (state.encounterGroup?.length ? state.encounterGroup : [state.encounter]).filter((m) => (m.hpNow ?? m.hp) > 0);
+  const shieldWall = state.player.combatEffects.shieldWall || 0;
+  let hit = 0;
+  attackers.forEach((attacker, idx) => {
+    const raw = Math.max(1, Math.floor((attacker.attack + rand(0, 7)) * mult * fatiguePenalty - totalStat('defense') * 0.35));
+    const reduced = Math.max(1, Math.floor(raw * (idx === 0 ? (1 - shieldWall) : 1)));
+    hit += reduced;
+  });
+  state.player.combatEffects.shieldWall = 0;
+  state.player.combatEffects.evasive = 0;
+  if (el.combatMonster) combatActorAnimate(el.combatMonster, 'attack');
+  if (el.combatPlayer) combatActorAnimate(el.combatPlayer, 'hit');
+  showCombatDamage(el.combatPlayerNums, hit, false);
+  animatePlayerHurt();
+  state.player.hp -= hit;
+  state.player.mana = clamp(state.player.mana + 4 + Math.floor(derivedAttr('willpower') * 0.15), 0, 60);
+  if (state.player.hp <= 0) { handlePlayerDefeat(); return; }
+  updateHud();
+  renderCombatActions();
+}
+
+function grantXp(amount) {
+  const progressionBonus = 1 + Math.min(0.45, state.player.level * 0.03);
+  const gained = Math.floor(amount * progressionBonus);
+  state.player.xp += gained;
+  addLog(`Gained ${gained} XP.`);
+  let leveled = false;
+  while (state.player.xp >= state.player.xpToNext) {
+    state.player.xp -= state.player.xpToNext;
+    state.player.level += 1;
+    state.player.xpToNext = Math.floor(state.player.xpToNext * 1.22 + 24);
+    state.player.unspentAttr += 2;
+    leveled = true;
+    addLog(`Reached level ${state.player.level}! Choose attributes to improve.`);
+  }
+  if (leveled) showLevelUpPanel();
+  updateHud();
+  renderCharacterScreen();
+}
+
+function showLevelUpPanel() {
+  if (!el.levelUpPanel || state.player.unspentAttr <= 0) return;
+  el.levelUpPanel.classList.remove('hidden');
+  el.levelUpText.textContent = `Spend ${state.player.unspentAttr} attribute point(s).`;
+  const attrs = ['strength', 'dexterity', 'intelligence', 'endurance', 'willpower'];
+  el.levelUpChoices.innerHTML = '';
+  attrs.forEach((attr) => {
+    const btn = document.createElement('button');
+    btn.textContent = `+1 ${attr.toUpperCase().slice(0, 3)}`;
+    btn.addEventListener('click', () => {
+      if (state.player.unspentAttr <= 0) return;
+      state.player.stats[attr] += 1;
+      state.player.unspentAttr -= 1;
+      addLog(`${attr} increased to ${state.player.stats[attr]}.`);
+      updateHud();
+      renderCharacterScreen();
+      if (state.player.unspentAttr <= 0) {
+        el.levelUpPanel.classList.add('hidden');
+      } else {
+        el.levelUpText.textContent = `Spend ${state.player.unspentAttr} attribute point(s).`;
+      }
+    });
+    el.levelUpChoices.appendChild(btn);
+  });
+}
+
+function animatePlayerAttack(monsterUid) {
+  el.player.classList.remove('attack');
+  void el.player.offsetWidth;
+  el.player.classList.add('attack');
+  const monsterNode = el.world.querySelector(`.monster[data-uid="${monsterUid}"]`);
+  if (monsterNode) {
+    monsterNode.classList.remove('hit');
+    void monsterNode.offsetWidth;
+    monsterNode.classList.add('hit');
+  }
+}
+
+function animatePlayerHurt() {
+  el.player.classList.remove('hurt');
+  void el.player.offsetWidth;
+  el.player.classList.add('hurt');
+}
+
+function gameLoop(ts = 0) {
+  moveStep(ts);
+  if (state.mode === 'explore') checkEncounter();
+  const daylight = 0.72 + Math.sin(state.day * 0.24) * 0.18;
+  el.world.style.filter = `brightness(${daylight.toFixed(2)}) saturate(1.05)`;
+  if (ts - state.lastRespawnTick > 3500) {
+    replenishMonsters(24);
+    state.lastRespawnTick = ts;
+  }
+  requestAnimationFrame(gameLoop);
+}
+
+function initStarterEquip() {
+  state.player.equipment = {};
+  const starterWeapon = state.player.inventory.find((x) => x.slot === 'weapon');
+  const starterChest = state.player.inventory.find((x) => x.slot === 'chestArmor');
+  if (starterWeapon) state.player.equipment.weapon = starterWeapon;
+  if (starterChest) state.player.equipment.chestArmor = starterChest;
+}
+
+function init() {
+  generateItems();
+  ensureWeaponProficiency();
+  generateBestiary();
+  respawnMonsters();
+  initStarterEquip();
+  applyKnight();
+  renderEquipment();
+  renderInventory();
+  renderCharacterScreen();
+  renderItemDetails();
+  updateHud();
+  updateQuestTracker();
+  renderMapChunk();
+  bindMapTap();
+  bindTabs();
+  setExploreActions();
+  if (el.inventoryFilter) {
+    el.inventoryFilter.addEventListener('change', (ev) => {
+      state.inventoryFilter = ev.target.value;
+      renderInventory();
+    });
+  }
+  bindTapAction(el.saveBtn, saveGame);
+  bindTapAction(el.loadBtn, loadGame);
+  bindTapAction(el.newGameBtn, startNewGame);
+  const autoSaveRaw = localStorage.getItem(SAVE_KEY);
+  if (autoSaveRaw) {
+    try {
+      const parsed = JSON.parse(autoSaveRaw);
+      if (applySaveData(parsed)) {
+        addLog('Autosave restored.');
+        applyKnight();
+        renderEquipment();
+        renderInventory();
+        renderCharacterScreen();
+        renderItemDetails();
+        updateHud();
+        renderMapChunk();
+        updateQuestTracker();
+        if (state.player.unspentAttr > 0) showLevelUpPanel();
+      }
+    } catch (_) {
+      addLog('Autosave could not be restored.');
+    }
+  }
+  addLog(`Loaded world ${MAP_SIZE}x${MAP_SIZE}, ${state.player.inventory.length} items, ${state.bestiary.length} monster types.`);
+  el.encounter.textContent = 'Tap a tile to set destination. Your party will march there automatically.';
+  gameLoop();
+}
+
+window.addEventListener('resize', renderMapChunk);
+init();
