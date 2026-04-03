@@ -172,72 +172,89 @@ function knightSvg({
   hasRing1 = false,
   hasRing2 = false,
 } = {}) {
+  /* Battle Brothers-style chunky warrior — bold outlines, earthy palette, 2.5D ground shadow */
+  const S = '#0d0a06';
+  const bodyFill = hasChest ? `hsl(${armorHue} 26% 44%)` : `hsl(${clothHue} 28% 36%)`;
   return `<svg viewBox='0 0 120 160' xmlns='http://www.w3.org/2000/svg'>
-    <defs>
-      <linearGradient id='skinGrad' x1='0' y1='0' x2='0' y2='1'>
-        <stop offset='0%' stop-color='hsl(26 38% 90%)'/>
-        <stop offset='100%' stop-color='hsl(26 33% 82%)'/>
-      </linearGradient>
-      <linearGradient id='clothGrad' x1='0' y1='0' x2='0' y2='1'>
-        <stop offset='0%' stop-color='hsl(${clothHue} 28% 54%)'/>
-        <stop offset='100%' stop-color='hsl(${clothHue} 32% 24%)'/>
-      </linearGradient>
-      <linearGradient id='armorGrad' x1='0' y1='0' x2='0' y2='1'>
-        <stop offset='0%' stop-color='hsl(${armorHue} 34% 64%)'/>
-        <stop offset='100%' stop-color='hsl(${armorHue} 28% 30%)'/>
-      </linearGradient>
-      <linearGradient id='trimGrad' x1='0' y1='0' x2='1' y2='1'>
-        <stop offset='0%' stop-color='hsl(${trimHue} 72% 68%)'/>
-        <stop offset='100%' stop-color='hsl(${trimHue} 52% 34%)'/>
-      </linearGradient>
-      <radialGradient id='aura' cx='50%' cy='42%' r='55%'>
-        <stop offset='0%' stop-color='rgba(157,117,191,.28)'/>
-        <stop offset='100%' stop-color='rgba(31,19,45,0)'/>
-      </radialGradient>
-    </defs>
-    <ellipse cx='60' cy='86' rx='42' ry='58' fill='url(#aura)'/>
-    <g stroke='#171218' stroke-width='1.6' stroke-linejoin='round' stroke-linecap='round'>
-      ${hasCape ? `<path d='M37 62 L25 146 L48 152 L50 62 Z' fill='hsl(${clothHue} 34% 26%)' opacity='.82'/>` : ''}
-      ${hasCape ? `<path d='M83 62 L70 152 L95 146 L84 62 Z' fill='hsl(${clothHue} 34% 26%)' opacity='.82'/>` : ''}
-      <ellipse cx='60' cy='43' rx='17' ry='16' fill='url(#skinGrad)'/>
-      <path d='M44 36 Q60 13 76 36 L76 42 Q60 28 44 42 Z' fill='hsl(47 65% 52%)'/>
-      <path d='M50 38 L55 36 M65 36 L70 38' stroke='hsl(40 48% 35%)' stroke-width='1.1'/>
-      <ellipse cx='54' cy='44' rx='2.6' ry='2' fill='hsl(${eyeHue} 42% 40%)'/>
-      <ellipse cx='66' cy='44' rx='2.6' ry='2' fill='hsl(${eyeHue} 42% 40%)'/>
-      <circle cx='54' cy='44' r='1' fill='#201811'/>
-      <circle cx='66' cy='44' r='1' fill='#201811'/>
-      <path d='M56 52 Q60 54 64 52' stroke='hsl(20 35% 44%)' stroke-width='1.1'/>
-      <ellipse cx='60' cy='84' rx='15' ry='24' fill='url(#skinGrad)'/>
-      <g class='limb arm-left'><rect x='30' y='66' width='10' height='42' rx='5' fill='url(#skinGrad)'/></g>
-      <g class='limb arm-right'><rect x='80' y='66' width='10' height='42' rx='5' fill='url(#skinGrad)'/></g>
-      <g class='limb leg-left'><rect x='49' y='106' width='10' height='34' rx='5' fill='url(#skinGrad)'/></g>
-      <g class='limb leg-right'><rect x='61' y='106' width='10' height='34' rx='5' fill='url(#skinGrad)'/></g>
-      ${hasHelmet ? `<path d='M43 44 Q60 19 77 44 L74 57 L46 57 Z' fill='hsl(${helmHue} 28% 46%)'/>` : ''}
-      ${hasHelmet ? `<path d='M50 44 L70 44 L67 52 L53 52 Z' fill='hsl(${helmHue} 24% 22%)'/>` : ''}
-      ${hasNecklace ? `<path d='M53 57 Q60 63 67 57' stroke='hsl(${trimHue} 72% 64%)' stroke-width='1.5'/>` : ''}
-      ${hasNecklace ? `<circle cx='60' cy='62' r='1.7' fill='hsl(${trimHue} 70% 56%)'/>` : ''}
-      <path d='M42 58 Q60 50 78 58' stroke='hsl(${trimHue} 46% 56%)' stroke-width='1.2'/>
-      ${hasChest ? `<path d='M43 60 L77 60 L74 92 L46 92 Z' fill='url(#clothGrad)'/>` : ''}
-      ${hasChest ? `<path d='M50 92 L70 92 L73 130 L47 130 Z' fill='hsl(${clothHue} 30% 32%)'/>` : ''}
-      ${hasChest ? `<path d='M50 60 L70 60 L74 104 L46 104 Z' fill='url(#armorGrad)'/>` : ''}
-      ${hasChest ? `<path d='M53 64 L67 64 M52 72 L68 72 M51 80 L69 80 M50 88 L70 88 M50 96 L70 96' stroke='hsl(${trimHue} 58% 66%)' stroke-width='1'/>` : ''}
-      ${hasGloves ? `<rect x='28' y='70' width='14' height='24' rx='6' fill='url(#armorGrad)'/>` : ''}
-      ${hasGloves ? `<rect x='78' y='70' width='14' height='24' rx='6' fill='url(#armorGrad)'/>` : ''}
-      ${hasGloves ? `<rect x='28' y='94' width='14' height='14' rx='6' fill='hsl(${armorHue ?? clothHue} 24% 26%)'/>` : ''}
-      ${hasGloves ? `<rect x='78' y='94' width='14' height='14' rx='6' fill='hsl(${armorHue ?? clothHue} 24% 26%)'/>` : ''}
-      ${hasLeggings ? `<rect x='47' y='108' width='14' height='22' rx='6' fill='hsl(${clothHue} 24% 38%)'/>` : ''}
-      ${hasLeggings ? `<rect x='59' y='108' width='14' height='22' rx='6' fill='hsl(${clothHue} 24% 38%)'/>` : ''}
-      ${hasBoots ? `<rect x='46' y='130' width='16' height='12' rx='5' fill='hsl(${leatherHue} 24% 24%)'/>` : ''}
-      ${hasBoots ? `<rect x='58' y='130' width='16' height='12' rx='5' fill='hsl(${leatherHue} 24% 24%)'/>` : ''}
-      ${hasWeapon ? `<path d='M87 45 L93 101 L84 102 L79 47 Z' fill='hsl(${weaponHue} 58% 70%)'/>` : ''}
-      ${hasWeapon ? `<rect x='75' y='81' width='24' height='6' rx='2' transform='rotate(10 86 84)' fill='hsl(${weaponHue} 48% 28%)'/>` : ''}
-      ${hasOffhand ? `<ellipse cx='25' cy='89' rx='10' ry='14' fill='hsl(${trimHue} 32% 34%)'/>` : ''}
-      ${hasOffhand ? `<path d='M19 89 Q25 77 31 89 Q25 102 19 89 Z' fill='hsl(${armorHue} 20% 58%)'/>` : ''}
-      ${hasRing1 ? `<circle cx='31' cy='101' r='1.5' fill='hsl(${trimHue} 72% 58%)'/>` : ''}
-      ${hasRing2 ? `<circle cx='89' cy='101' r='1.5' fill='hsl(${trimHue} 72% 58%)'/>` : ''}
-    </g>
-  </svg>`;
+  <defs>
+    <linearGradient id='kSkin' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%'   stop-color='hsl(28 50% 72%)'/>
+      <stop offset='100%' stop-color='hsl(28 42% 58%)'/>
+    </linearGradient>
+    <linearGradient id='kArmor' x1='0' y1='0' x2='0' y2='1'>
+      <stop offset='0%'   stop-color='hsl(${armorHue} 26% 58%)'/>
+      <stop offset='100%' stop-color='hsl(${armorHue} 18% 28%)'/>
+    </linearGradient>
+    <radialGradient id='kBodyLight' cx='38%' cy='28%' r='58%'>
+      <stop offset='0%'   stop-color='rgba(255,230,180,.18)'/>
+      <stop offset='100%' stop-color='rgba(0,0,0,0)'/>
+    </radialGradient>
+  </defs>
+  <ellipse cx='60' cy='154' rx='23' ry='5' fill='rgba(0,0,0,0.42)'/>
+  ${hasCape ? `<path d='M40 65 Q28 108 30 150 L54 150 L52 65 Z' fill='hsl(${clothHue} 30% 20%)' stroke='${S}' stroke-width='1.8' opacity='.9'/>
+  <path d='M80 65 Q92 108 90 150 L66 150 L68 65 Z' fill='hsl(${clothHue} 30% 20%)' stroke='${S}' stroke-width='1.8' opacity='.9'/>` : ''}
+  <g class='limb leg-left'>
+    <rect x='45' y='108' width='14' height='44' rx='7' fill='${hasLeggings ? `hsl(${clothHue} 24% 34%)` : `url(#kSkin)`}' stroke='${S}' stroke-width='2.2'/>
+    ${hasBoots ? `<rect x='44' y='134' width='16' height='18' rx='6' fill='hsl(${leatherHue} 24% 22%)' stroke='${S}' stroke-width='2'/>` : ''}
+  </g>
+  <g class='limb leg-right'>
+    <rect x='61' y='108' width='14' height='44' rx='7' fill='${hasLeggings ? `hsl(${clothHue} 24% 34%)` : `url(#kSkin)`}' stroke='${S}' stroke-width='2.2'/>
+    ${hasBoots ? `<rect x='60' y='134' width='16' height='18' rx='6' fill='hsl(${leatherHue} 20% 20%)' stroke='${S}' stroke-width='2'/>` : ''}
+  </g>
+  <rect x='37' y='64' width='46' height='46' rx='9' fill='${bodyFill}' stroke='${S}' stroke-width='2.6'/>
+  <rect x='37' y='64' width='46' height='46' rx='9' fill='url(#kBodyLight)' stroke='none'/>
+  ${hasChest ? `<path d='M44 68 L76 68 L78 92 L42 92 Z' fill='hsl(${armorHue} 22% 50%)' stroke='${S}' stroke-width='1.6'/>
+  <path d='M52 68 L68 68 L70 82 L50 82 Z' fill='hsl(${armorHue} 28% 58%)' opacity='.7'/>
+  <line x1='60' y1='68' x2='60' y2='92' stroke='hsl(${trimHue} 56% 48%)' stroke-width='1.3'/>
+  <line x1='44' y1='78' x2='76' y2='78' stroke='hsl(${trimHue} 50% 44%)' stroke-width='1'/>
+  <line x1='44' y1='86' x2='76' y2='86' stroke='hsl(${trimHue} 46% 40%)' stroke-width='.9'/>` : ''}
+  <ellipse cx='35' cy='70' rx='11' ry='7' fill='${bodyFill}' stroke='${S}' stroke-width='2.2'/>
+  <ellipse cx='85' cy='70' rx='11' ry='7' fill='${bodyFill}' stroke='${S}' stroke-width='2.2'/>
+  ${hasChest ? `<ellipse cx='35' cy='70' rx='9' ry='5.5' fill='url(#kArmor)' stroke='none'/>
+  <ellipse cx='85' cy='70' rx='9' ry='5.5' fill='url(#kArmor)' stroke='none'/>` : ''}
+  <g class='limb arm-left'>
+    <rect x='27' y='68' width='15' height='40' rx='7' fill='${hasGloves ? `url(#kArmor)` : `url(#kSkin)`}' stroke='${S}' stroke-width='2.2'/>
+    ${hasGloves ? `<rect x='26' y='98' width='17' height='14' rx='6' fill='hsl(${armorHue} 20% 26%)' stroke='${S}' stroke-width='1.8'/>` : ''}
+    ${hasRing1 ? `<circle cx='34' cy='110' r='2.2' fill='hsl(${trimHue} 70% 54%)' stroke='${S}' stroke-width='1'/>` : ''}
+  </g>
+  ${hasOffhand ? `<ellipse cx='21' cy='90' rx='12' ry='16' fill='hsl(${armorHue} 20% 48%)' stroke='${S}' stroke-width='2.2'/>
+  <path d='M14 90 Q21 75 28 90 Q21 105 14 90 Z' fill='hsl(${armorHue} 16% 58%)' stroke='${S}' stroke-width='1.5'/>
+  <line x1='21' y1='79' x2='21' y2='101' stroke='hsl(${trimHue} 54% 48%)' stroke-width='1.4'/>
+  <line x1='16' y1='90' x2='26' y2='90' stroke='hsl(${trimHue} 54% 48%)' stroke-width='1.4'/>` : ''}
+  <g class='limb arm-right'>
+    <rect x='78' y='68' width='15' height='40' rx='7' fill='${hasGloves ? `url(#kArmor)` : `url(#kSkin)`}' stroke='${S}' stroke-width='2.2'/>
+    ${hasGloves ? `<rect x='77' y='98' width='17' height='14' rx='6' fill='hsl(${armorHue} 20% 26%)' stroke='${S}' stroke-width='1.8'/>` : ''}
+    ${hasRing2 ? `<circle cx='86' cy='110' r='2.2' fill='hsl(${trimHue} 70% 54%)' stroke='${S}' stroke-width='1'/>` : ''}
+  </g>
+  ${hasWeapon ? `<g transform='rotate(-9,93,90)'><rect x='89' y='52' width='8' height='56' rx='3' fill='hsl(${weaponHue} 54% 64%)' stroke='${S}' stroke-width='2'/>
+  <rect x='80' y='76' width='26' height='5' rx='2' fill='hsl(${weaponHue} 38% 28%)' stroke='${S}' stroke-width='1.5'/>
+  <path d='M89 52 L93 42 L97 52 Z' fill='hsl(${weaponHue} 66% 76%)' stroke='${S}' stroke-width='1.5'/>
+  <circle cx='93' cy='108' r='4' fill='hsl(${weaponHue} 44% 36%)' stroke='${S}' stroke-width='1.5'/>
+  <line x1='89' y1='62' x2='97' y2='62' stroke='hsl(${weaponHue} 28% 48%)' stroke-width='1'/></g>` : ''}
+  ${!hasHelmet ? `<path d='M43 44 Q44 20 60 18 Q76 20 77 44 L75 40 Q60 24 45 40 Z' fill='hsl(38 60% 40%)' stroke='${S}' stroke-width='1.8'/>` : ''}
+  <circle cx='60' cy='44' r='20' fill='url(#kSkin)' stroke='${S}' stroke-width='2.6'/>
+  ${hasHelmet ? `<path d='M40 44 Q42 18 60 16 Q78 18 80 44 L77 54 L43 54 Z' fill='hsl(${helmHue} 24% 44%)' stroke='${S}' stroke-width='2.2'/>
+  <path d='M48 44 L72 44 L69 54 L51 54 Z' fill='hsl(${helmHue} 18% 20%)' stroke='${S}' stroke-width='1.5'/>
+  <path d='M57 17 L60 12 L63 17' fill='hsl(${trimHue} 66% 52%)' stroke='${S}' stroke-width='1.2'/>
+  <line x1='42' y1='36' x2='48' y2='34' stroke='hsl(${helmHue} 20% 60%)' stroke-width='1.1'/>
+  <line x1='78' y1='36' x2='72' y2='34' stroke='hsl(${helmHue} 20% 60%)' stroke-width='1.1'/>` : ''}
+  ${!hasHelmet ? `<ellipse cx='53' cy='43' rx='3.8' ry='3' fill='hsl(${eyeHue} 42% 38%)' stroke='${S}' stroke-width='1.2'/>
+  <ellipse cx='67' cy='43' rx='3.8' ry='3' fill='hsl(${eyeHue} 42% 38%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='53' cy='43' r='1.5' fill='#14100a'/>
+  <circle cx='67' cy='43' r='1.5' fill='#14100a'/>
+  <circle cx='52' cy='42' r='.6' fill='rgba(255,255,255,.55)'/>
+  <circle cx='66' cy='42' r='.6' fill='rgba(255,255,255,.55)'/>
+  <path d='M50 40 L57 39' stroke='hsl(38 50% 28%)' stroke-width='1.5' stroke-linecap='round'/>
+  <path d='M63 39 L70 40' stroke='hsl(38 50% 28%)' stroke-width='1.5' stroke-linecap='round'/>
+  <path d='M57 50 Q60 52 63 50' stroke='hsl(28 36% 42%)' stroke-width='1.1' fill='none'/>` : `<line x1='49' y1='46' x2='58' y2='46' stroke='rgba(0,0,0,.65)' stroke-width='2' stroke-linecap='round'/>
+  <line x1='62' y1='46' x2='71' y2='46' stroke='rgba(0,0,0,.65)' stroke-width='2' stroke-linecap='round'/>`}
+  <rect x='56' y='62' width='8' height='5' rx='3' fill='url(#kSkin)' stroke='${S}' stroke-width='1.8'/>
+  ${hasNecklace ? `<path d='M52 65 Q60 71 68 65' stroke='hsl(${trimHue} 64% 54%)' stroke-width='1.6' fill='none'/>
+  <circle cx='60' cy='70' r='2.4' fill='hsl(${trimHue} 64% 48%)' stroke='${S}' stroke-width='1'/>` : ''}
+  <path d='M44 63 Q60 57 76 63' stroke='hsl(${trimHue} 42% 44%)' stroke-width='1.4' fill='none'/>
+</svg>`;
 }
+
 
 function applyKnight() {
   const svg = knightSvg(getKnightAppearance());
@@ -315,7 +332,7 @@ function decoSeed(x, y) {
 }
 
 function renderMapChunk() {
-  el.world.querySelectorAll('.patch,.monster,.deco').forEach((n) => n.remove());
+  el.world.querySelectorAll('.patch,.monster,.deco,.monster-aggro-ring').forEach((n) => n.remove());
   const { x: px, y: py } = state.player.pos;
   const fragment = document.createDocumentFragment();
   for (let y = py - VIEW_RADIUS; y <= py + VIEW_RADIUS; y += 1) {
@@ -827,140 +844,107 @@ function generateBestiary() {
 }
 
 function monsterSvg(name, h) {
+  /* Battle Brothers-style creatures: bold outlines, earthy hues, 2.5D ground shadow */
+  const S = '#0a0806';
   if (name.includes('Spider')) {
     return `<svg viewBox='0 0 80 80'>
-      <ellipse cx='40' cy='45' rx='17' ry='13' fill='hsl(${h} 46% 20%)'/>
-      <ellipse cx='40' cy='32' rx='12' ry='10' fill='hsl(${h} 56% 30%)'/>
-      <ellipse cx='40' cy='47' rx='10' ry='8' fill='hsl(${h} 41% 15%)'/>
-      <circle cx='35' cy='30' r='1.8' fill='#fff'/>
-      <circle cx='45' cy='30' r='1.8' fill='#fff'/>
-      <circle cx='35' cy='30' r='0.7' fill='#111'/>
-      <circle cx='45' cy='30' r='0.7' fill='#111'/>
-      <circle cx='40' cy='37' r='2.1' fill='hsl(${h} 72% 60%)'/>
-      <circle cx='34' cy='40' r='1.2' fill='hsl(${h} 18% 75%)'/>
-      <circle cx='46' cy='40' r='1.2' fill='hsl(${h} 18% 75%)'/>
-      <circle cx='31' cy='44' r='1' fill='hsl(${h} 18% 70%)'/>
-      <circle cx='49' cy='44' r='1' fill='hsl(${h} 18% 70%)'/>
-      <circle cx='40' cy='23' r='1.8' fill='hsl(${h} 58% 40%)'/>
-      <circle cx='40' cy='57' r='1.4' fill='hsl(${h} 42% 36%)'/>
-      <path d='M35 52 L45 52' stroke='hsl(${h} 20% 72%)' stroke-width='1.4'/>
-      <path d='M28 28 L19 23' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
-      <path d='M52 28 L61 23' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
-      <path d='M28 34 L14 31' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
-      <path d='M52 34 L66 31' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
-      <path d='M27 39 L12 41' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
-      <path d='M53 39 L68 41' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
-      <path d='M28 45 L13 51' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
-      <path d='M52 45 L67 51' stroke='hsl(${h} 33% 56%)' stroke-width='2.8' stroke-linecap='round'/>
-      <path d='M31 26 L26 20' stroke='hsl(${h} 35% 44%)' stroke-width='1.2'/>
-      <path d='M49 26 L54 20' stroke='hsl(${h} 35% 44%)' stroke-width='1.2'/>
-      <path d='M33 49 L30 53' stroke='hsl(${h} 35% 44%)' stroke-width='1.2'/>
-      <path d='M47 49 L50 53' stroke='hsl(${h} 35% 44%)' stroke-width='1.2'/>
-      <circle cx='24' cy='33' r='1.1' fill='hsl(${h} 18% 70%)'/>
-      <circle cx='56' cy='33' r='1.1' fill='hsl(${h} 18% 70%)'/>
-      <circle cx='40' cy='50' r='1.2' fill='hsl(${h} 18% 70%)'/>
-    </svg>`;
+  <ellipse cx='38' cy='68' rx='18' ry='4' fill='rgba(0,0,0,0.38)'/>
+  <ellipse cx='40' cy='54' rx='20' ry='16' fill='hsl(${h} 48% 14%)' stroke='${S}' stroke-width='2.2'/>
+  <ellipse cx='40' cy='54' rx='12' ry='9' fill='hsl(${h} 55% 20%)' stroke='none'/>
+  <ellipse cx='36' cy='36' rx='14' ry='12' fill='hsl(${h} 52% 24%)' stroke='${S}' stroke-width='2'/>
+  <circle cx='30' cy='31' r='3.8' fill='hsl(0 78% 44%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='39' cy='30' r='3.2' fill='hsl(0 72% 40%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='25' cy='35' r='2.2' fill='hsl(22 78% 44%)' stroke='${S}' stroke-width='1'/>
+  <circle cx='43' cy='34' r='2.2' fill='hsl(22 78% 44%)' stroke='${S}' stroke-width='1'/>
+  <circle cx='30' cy='31' r='1.5' fill='#050303'/>
+  <circle cx='39' cy='30' r='1.2' fill='#050303'/>
+  <path d='M30 43 L23 52' stroke='hsl(${h} 38% 32%)' stroke-width='3' stroke-linecap='round'/>
+  <path d='M36 45 L31 54' stroke='hsl(${h} 38% 32%)' stroke-width='3' stroke-linecap='round'/>
+  <path d='M30 28 Q20 20 8 18' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M32 34 Q18 30 6 32' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M32 40 Q18 40 6 44' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M34 46 Q22 52 12 58' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M42 28 Q52 20 64 16' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M44 34 Q58 30 70 30' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M44 40 Q58 40 72 42' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <path d='M42 46 Q56 52 66 58' stroke='hsl(${h} 32% 40%)' stroke-width='3.2' stroke-linecap='round' fill='none'/>
+  <circle cx='19' cy='20' r='2.2' fill='hsl(${h} 26% 28%)' stroke='${S}' stroke-width='1'/>
+  <circle cx='17' cy='31' r='2.2' fill='hsl(${h} 26% 28%)' stroke='${S}' stroke-width='1'/>
+  <circle cx='53' cy='20' r='2.2' fill='hsl(${h} 26% 28%)' stroke='${S}' stroke-width='1'/>
+  <circle cx='58' cy='31' r='2.2' fill='hsl(${h} 26% 28%)' stroke='${S}' stroke-width='1'/>
+  <ellipse cx='37' cy='48' rx='6' ry='4' fill='rgba(255,255,255,.05)' stroke='none'/>
+</svg>`;
   }
   if (name.includes('Wolf') || name.includes('Hound')) {
     return `<svg viewBox='0 0 80 80'>
-      <path d='M11 55 L23 33 L51 33 L66 48 L57 61 L18 61 Z' fill='hsl(${h} 40% 24%)'/>
-      <path d='M24 34 L28 20 L35 31 L43 21 L50 34 Z' fill='hsl(${h} 49% 34%)'/>
-      <path d='M22 45 L55 45' stroke='hsl(${h} 30% 40%)' stroke-width='8' stroke-linecap='round'/>
-      <path d='M50 42 L59 39 L56 47 Z' fill='hsl(${h} 26% 44%)'/>
-      <path d='M63 49 L72 46 L67 55 Z' fill='hsl(${h} 25% 38%)'/>
-      <path d='M23 35 L17 29 L20 42 Z' fill='hsl(${h} 30% 30%)'/>
-      <circle cx='33' cy='40' r='2.1' fill='#fff'/>
-      <circle cx='35' cy='40' r='1' fill='#111'/>
-      <circle cx='30' cy='43' r='0.7' fill='hsl(${h} 10% 75%)'/>
-      <path d='M25 48 L53 48' stroke='hsl(${h} 14% 64%)' stroke-width='1.6'/>
-      <path d='M22 55 L26 63' stroke='hsl(${h} 26% 64%)' stroke-width='2.2' stroke-linecap='round'/>
-      <path d='M36 56 L39 64' stroke='hsl(${h} 26% 64%)' stroke-width='2.2' stroke-linecap='round'/>
-      <path d='M47 56 L50 64' stroke='hsl(${h} 26% 64%)' stroke-width='2.2' stroke-linecap='round'/>
-      <path d='M55 54 L59 62' stroke='hsl(${h} 26% 64%)' stroke-width='2.2' stroke-linecap='round'/>
-      <circle cx='19' cy='46' r='1.1' fill='hsl(${h} 12% 16%)'/>
-      <circle cx='27' cy='46' r='1.1' fill='hsl(${h} 12% 16%)'/>
-      <circle cx='35' cy='46' r='1.1' fill='hsl(${h} 12% 16%)'/>
-      <circle cx='43' cy='46' r='1.1' fill='hsl(${h} 12% 16%)'/>
-      <circle cx='51' cy='46' r='1.1' fill='hsl(${h} 12% 16%)'/>
-      <circle cx='58' cy='49' r='1' fill='hsl(${h} 10% 18%)'/>
-      <path d='M26 28 L31 30' stroke='hsl(${h} 22% 62%)' stroke-width='1.2'/>
-      <path d='M41 27 L46 29' stroke='hsl(${h} 22% 62%)' stroke-width='1.2'/>
-      <path d='M30 37 L37 35' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
-      <path d='M38 36 L45 34' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
-      <path d='M24 50 L31 52' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
-      <path d='M32 51 L39 53' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
-      <path d='M40 52 L47 54' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
-      <path d='M48 53 L55 55' stroke='hsl(${h} 18% 56%)' stroke-width='1.2'/>
-      <circle cx='61' cy='52' r='0.9' fill='hsl(${h} 10% 16%)'/>
-      <circle cx='15' cy='53' r='0.9' fill='hsl(${h} 10% 16%)'/>
-    </svg>`;
+  <ellipse cx='40' cy='72' rx='22' ry='4' fill='rgba(0,0,0,0.36)'/>
+  <ellipse cx='44' cy='52' rx='26' ry='16' fill='hsl(${h} 34% 28%)' stroke='${S}' stroke-width='2.2'/>
+  <ellipse cx='26' cy='40' rx='17' ry='14' fill='hsl(${h} 38% 34%)' stroke='${S}' stroke-width='2.2'/>
+  <path d='M25 28 L19 14 L31 24' fill='hsl(${h} 42% 36%)' stroke='${S}' stroke-width='1.8'/>
+  <path d='M33 28 L31 12 L39 22' fill='hsl(${h} 42% 36%)' stroke='${S}' stroke-width='1.8'/>
+  <path d='M10 38 Q13 46 22 47 L22 34' fill='hsl(${h} 36% 40%)' stroke='${S}' stroke-width='1.8'/>
+  <circle cx='20' cy='36' r='4' fill='hsl(52 88% 55%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='20' cy='36' r='1.8' fill='#080605'/>
+  <circle cx='19' cy='35' r='.7' fill='rgba(255,255,255,.7)'/>
+  <ellipse cx='11' cy='39' rx='3.2' ry='2.6' fill='hsl(${h} 14% 14%)' stroke='${S}' stroke-width='1'/>
+  <path d='M9 44 L12 48 L16 43 L19 47 L23 43' stroke='${S}' stroke-width='1' fill='hsl(0 0% 88%)'/>
+  <path d='M30 48 Q38 46 52 48' stroke='hsl(${h} 24% 38%)' stroke-width='4.5' stroke-linecap='round' fill='none'/>
+  <line x1='22' y1='62' x2='18' y2='74' stroke='hsl(${h} 32% 32%)' stroke-width='5' stroke-linecap='round'/>
+  <line x1='32' y1='64' x2='28' y2='76' stroke='hsl(${h} 32% 32%)' stroke-width='5' stroke-linecap='round'/>
+  <line x1='52' y1='64' x2='48' y2='76' stroke='hsl(${h} 32% 32%)' stroke-width='5' stroke-linecap='round'/>
+  <line x1='62' y1='62' x2='58' y2='74' stroke='hsl(${h} 32% 32%)' stroke-width='5' stroke-linecap='round'/>
+  <path d='M66 52 Q76 42 72 30' stroke='hsl(${h} 30% 36%)' stroke-width='3.8' stroke-linecap='round' fill='none'/>
+  <path d='M35 50 Q45 46 56 48' stroke='hsl(${h} 24% 40%)' stroke-width='1.3' fill='none'/>
+  <path d='M32 56 Q44 52 58 54' stroke='hsl(${h} 24% 38%)' stroke-width='1.2' fill='none'/>
+  <path d='M16 72 L14 76 M19 74 L18 78' stroke='hsl(${h} 10% 18%)' stroke-width='1.6' stroke-linecap='round'/>
+</svg>`;
   }
   if (name.includes('Harpy') || name.includes('Crow')) {
     return `<svg viewBox='0 0 80 80'>
-      <path d='M8 44 Q40 12 72 44 Q40 34 8 44 Z' fill='hsl(${h} 44% 26%)'/>
-      <path d='M12 45 Q24 33 36 39 Q22 43 12 45 Z' fill='hsl(${h} 50% 34%)'/>
-      <path d='M68 45 Q56 33 44 39 Q58 43 68 45 Z' fill='hsl(${h} 50% 34%)'/>
-      <ellipse cx='40' cy='49' rx='12' ry='10' fill='hsl(${h} 54% 38%)'/>
-      <ellipse cx='40' cy='50' rx='8' ry='6' fill='hsl(${h} 44% 24%)'/>
-      <path d='M40 28 L45 37 L35 37 Z' fill='hsl(${h} 62% 56%)'/>
-      <path d='M39 36 L43 43 L37 43 Z' fill='hsl(${h} 28% 48%)'/>
-      <circle cx='37' cy='48' r='1.6' fill='#fff'/>
-      <circle cx='43' cy='48' r='1.6' fill='#fff'/>
-      <circle cx='37' cy='48' r='0.7' fill='#111'/>
-      <circle cx='43' cy='48' r='0.7' fill='#111'/>
-      <path d='M34 56 L40 63 L46 56' stroke='hsl(${h} 28% 72%)' stroke-width='2' fill='none'/>
-      <path d='M15 43 L22 50 L16 55' stroke='hsl(${h} 36% 58%)' stroke-width='2'/>
-      <path d='M65 43 L58 50 L64 55' stroke='hsl(${h} 36% 58%)' stroke-width='2'/>
-      <circle cx='28' cy='44' r='1' fill='hsl(${h} 18% 82%)'/>
-      <circle cx='32' cy='43' r='1' fill='hsl(${h} 18% 82%)'/>
-      <circle cx='48' cy='43' r='1' fill='hsl(${h} 18% 82%)'/>
-      <circle cx='52' cy='44' r='1' fill='hsl(${h} 18% 82%)'/>
-      <path d='M24 37 L30 40' stroke='hsl(${h} 34% 66%)' stroke-width='1.3'/>
-      <path d='M56 37 L50 40' stroke='hsl(${h} 34% 66%)' stroke-width='1.3'/>
-      <path d='M18 46 L24 48' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
-      <path d='M24 48 L30 50' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
-      <path d='M30 50 L36 52' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
-      <path d='M62 46 L56 48' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
-      <path d='M56 48 L50 50' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
-      <path d='M50 50 L44 52' stroke='hsl(${h} 20% 70%)' stroke-width='1.1'/>
-      <circle cx='40' cy='65' r='1.4' fill='hsl(${h} 18% 72%)'/>
-      <circle cx='35' cy='63' r='0.9' fill='hsl(${h} 18% 66%)'/>
-      <circle cx='45' cy='63' r='0.9' fill='hsl(${h} 18% 66%)'/>
-      <circle cx='40' cy='60' r='0.9' fill='hsl(${h} 18% 66%)'/>
-    </svg>`;
+  <ellipse cx='40' cy='72' rx='18' ry='4' fill='rgba(0,0,0,0.34)'/>
+  <path d='M6 48 Q28 18 40 28 Q28 38 6 48 Z' fill='hsl(${h} 46% 20%)' stroke='${S}' stroke-width='2'/>
+  <path d='M74 48 Q52 18 40 28 Q52 38 74 48 Z' fill='hsl(${h} 46% 20%)' stroke='${S}' stroke-width='2'/>
+  <path d='M8 46 Q20 26 34 32' stroke='hsl(${h} 38% 30%)' stroke-width='1.3' fill='none'/>
+  <path d='M12 48 Q24 32 36 36' stroke='hsl(${h} 38% 30%)' stroke-width='1.1' fill='none'/>
+  <path d='M72 46 Q60 26 46 32' stroke='hsl(${h} 38% 30%)' stroke-width='1.3' fill='none'/>
+  <path d='M68 48 Q56 32 44 36' stroke='hsl(${h} 38% 30%)' stroke-width='1.1' fill='none'/>
+  <ellipse cx='40' cy='52' rx='14' ry='17' fill='hsl(${h} 52% 32%)' stroke='${S}' stroke-width='2.2'/>
+  <circle cx='40' cy='34' r='13' fill='hsl(${h} 48% 28%)' stroke='${S}' stroke-width='2.2'/>
+  <path d='M40 34 L34 41 L40 39 L46 41 Z' fill='hsl(52 78% 56%)' stroke='${S}' stroke-width='1.5'/>
+  <path d='M35 40 L40 38 L45 40' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='35' cy='30' r='3.8' fill='hsl(52 88% 55%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='45' cy='30' r='3.8' fill='hsl(52 88% 55%)' stroke='${S}' stroke-width='1.2'/>
+  <circle cx='35' cy='30' r='1.6' fill='#060404'/><circle cx='45' cy='30' r='1.6' fill='#060404'/>
+  <circle cx='34' cy='29' r='.7' fill='rgba(255,255,255,.7)'/><circle cx='44' cy='29' r='.7' fill='rgba(255,255,255,.7)'/>
+  <path d='M36 23 L38 13 L40 22' stroke='hsl(${h} 58% 48%)' stroke-width='2.2' stroke-linecap='round' fill='none'/>
+  <path d='M40 22 L42 11 L44 20' stroke='hsl(${h} 58% 48%)' stroke-width='2.2' stroke-linecap='round' fill='none'/>
+  <path d='M33 67 Q30 73 26 75 M33 67 Q32 75 29 77 M33 67 Q34 75 32 79' stroke='hsl(${h} 16% 24%)' stroke-width='2.4' stroke-linecap='round'/>
+  <path d='M47 67 Q50 73 54 75 M47 67 Q48 75 51 77 M47 67 Q46 75 48 79' stroke='hsl(${h} 16% 24%)' stroke-width='2.4' stroke-linecap='round'/>
+</svg>`;
   }
+  /* Generic humanoid monster — horned creature with glowing eyes */
   return `<svg viewBox='0 0 80 80'>
-    <ellipse cx='40' cy='46' rx='24' ry='18' fill='hsl(${h} 40% 28%)'/>
-    <ellipse cx='40' cy='47' rx='18' ry='13' fill='hsl(${h} 46% 20%)'/>
-    <circle cx='31' cy='40' r='6' fill='hsl(${h} 67% 54%)'/>
-    <circle cx='49' cy='40' r='6' fill='hsl(${h} 67% 54%)'/>
-    <circle cx='31' cy='40' r='2' fill='#111'/>
-    <circle cx='49' cy='40' r='2' fill='#111'/>
-    <circle cx='26' cy='37' r='1.1' fill='hsl(${h} 10% 76%)'/>
-    <circle cx='54' cy='37' r='1.1' fill='hsl(${h} 10% 76%)'/>
-    <path d='M26 53 Q40 60 54 53' stroke='hsl(${h} 25% 72%)' stroke-width='2' fill='none'/>
-    <path d='M33 54 L37 51' stroke='hsl(${h} 12% 62%)' stroke-width='1.2'/>
-    <path d='M47 54 L43 51' stroke='hsl(${h} 12% 62%)' stroke-width='1.2'/>
-    <path d='M18 45 L10 42' stroke='hsl(${h} 30% 54%)' stroke-width='2'/>
-    <path d='M62 45 L70 42' stroke='hsl(${h} 30% 54%)' stroke-width='2'/>
-    <path d='M20 52 L12 56' stroke='hsl(${h} 30% 54%)' stroke-width='2'/>
-    <path d='M60 52 L68 56' stroke='hsl(${h} 30% 54%)' stroke-width='2'/>
-    <circle cx='24' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
-    <circle cx='30' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
-    <circle cx='36' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
-    <circle cx='44' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
-    <circle cx='50' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
-    <circle cx='56' cy='46' r='1' fill='hsl(${h} 10% 16%)'/>
-    <path d='M32 28 L40 18 L48 28' stroke='hsl(${h} 35% 60%)' stroke-width='2' fill='none'/>
-    <path d='M34 28 L40 24 L46 28' stroke='hsl(${h} 35% 50%)' stroke-width='1.4' fill='none'/>
-    <circle cx='40' cy='31' r='1.2' fill='hsl(${h} 18% 68%)'/>
-    <circle cx='21' cy='50' r='0.9' fill='hsl(${h} 10% 14%)'/>
-    <circle cx='59' cy='50' r='0.9' fill='hsl(${h} 10% 14%)'/>
-    <path d='M24 56 L29 58' stroke='hsl(${h} 18% 62%)' stroke-width='1.1'/>
-    <path d='M29 58 L34 59' stroke='hsl(${h} 18% 62%)' stroke-width='1.1'/>
-    <path d='M56 56 L51 58' stroke='hsl(${h} 18% 62%)' stroke-width='1.1'/>
-    <path d='M51 58 L46 59' stroke='hsl(${h} 18% 62%)' stroke-width='1.1'/>
-  </svg>`;
+  <ellipse cx='40' cy='72' rx='20' ry='4' fill='rgba(0,0,0,0.36)'/>
+  <path d='M24 62 Q20 44 26 30 Q40 22 54 30 Q60 44 56 62 Z' fill='hsl(${h} 36% 24%)' stroke='${S}' stroke-width='2.2'/>
+  <circle cx='40' cy='28' r='15' fill='hsl(${h} 40% 32%)' stroke='${S}' stroke-width='2.2'/>
+  <path d='M30 18 L24 5 L34 16' fill='hsl(${h} 30% 26%)' stroke='${S}' stroke-width='1.8'/>
+  <path d='M50 18 L56 5 L46 16' fill='hsl(${h} 30% 26%)' stroke='${S}' stroke-width='1.8'/>
+  <circle cx='34' cy='26' r='5.5' fill='hsl(${h} 78% 54%)' stroke='${S}' stroke-width='1.5'/>
+  <circle cx='46' cy='26' r='5.5' fill='hsl(${h} 78% 54%)' stroke='${S}' stroke-width='1.5'/>
+  <circle cx='34' cy='26' r='2.8' fill='#080506'/>
+  <circle cx='46' cy='26' r='2.8' fill='#080506'/>
+  <circle cx='33' cy='25' r='1' fill='rgba(255,255,255,.6)'/>
+  <circle cx='45' cy='25' r='1' fill='rgba(255,255,255,.6)'/>
+  <path d='M32 36 Q40 43 48 36' stroke='${S}' stroke-width='1.5' fill='hsl(${h} 28% 18%)'/>
+  <path d='M34 36 L36 40 L38 36 L40 40 L42 36 L44 40 L46 36' fill='none' stroke='hsl(0 0% 80%)' stroke-width='1.2'/>
+  <path d='M24 40 Q12 44 8 54' stroke='hsl(${h} 32% 30%)' stroke-width='5.5' stroke-linecap='round' fill='none'/>
+  <path d='M56 40 Q68 44 72 54' stroke='hsl(${h} 32% 30%)' stroke-width='5.5' stroke-linecap='round' fill='none'/>
+  <path d='M6 54 L4 58 M8 56 L7 60 M10 55 L10 59' stroke='hsl(${h} 14% 52%)' stroke-width='1.6' stroke-linecap='round'/>
+  <path d='M74 54 L76 58 M72 56 L73 60 M70 55 L70 59' stroke='hsl(${h} 14% 52%)' stroke-width='1.6' stroke-linecap='round'/>
+  <path d='M30 42 Q40 38 50 42' stroke='hsl(${h} 26% 34%)' stroke-width='1.3' fill='none'/>
+  <line x1='32' y1='62' x2='28' y2='74' stroke='hsl(${h} 34% 28%)' stroke-width='4.5' stroke-linecap='round'/>
+  <line x1='48' y1='62' x2='52' y2='74' stroke='hsl(${h} 34% 28%)' stroke-width='4.5' stroke-linecap='round'/>
+</svg>`;
 }
 
 function respawnMonsters() {
@@ -999,14 +983,24 @@ function drawMonsters() {
   const fragment = document.createDocumentFragment();
   state.monsters.forEach((m) => {
     if (Math.abs(m.x - px) > VIEW_RADIUS || Math.abs(m.y - py) > VIEW_RADIUS) return;
-    const node = document.createElement('div');
-    const tileDist = Math.max(Math.abs(m.x - px), Math.abs(m.y - py));
-    node.className = `monster${tileDist <= 5 ? ' aggro-near' : ''}`;
-    node.dataset.uid = m.uid;
-    node.innerHTML = `<div class="monster-aggro-ring"></div><div class="monster-label">${m.name} · Lv ${m.tier}</div>${monsterSvg(m.name, m.hue)}`;
     const p = iso(m.x - px + VIEW_RADIUS, m.y - py + VIEW_RADIUS);
-    node.style.left = `${p.x + 38}px`;
-    node.style.top = `${p.y + 24}px`;
+    const posX = p.x + 38;
+    const posY = p.y + 24;
+    const tileDist = Math.max(Math.abs(m.x - px), Math.abs(m.y - py));
+    const isNear = tileDist <= 5;
+    // Aggro ring as standalone sibling — avoids stacking-context clipping from monster's animation
+    const ring = document.createElement('div');
+    ring.className = `monster-aggro-ring${isNear ? ' aggro-near' : ''}`;
+    ring.style.left = `${posX}px`;
+    ring.style.top = `${posY}px`;
+    fragment.appendChild(ring);
+    // Monster sprite
+    const node = document.createElement('div');
+    node.className = `monster${isNear ? ' aggro-near' : ''}`;
+    node.dataset.uid = m.uid;
+    node.innerHTML = `<div class="monster-label">${m.name} · Lv ${m.tier}</div>${monsterSvg(m.name, m.hue)}`;
+    node.style.left = `${posX}px`;
+    node.style.top = `${posY}px`;
     fragment.appendChild(node);
   });
   return fragment;
